@@ -1,0 +1,49 @@
+{
+  "name": "render-code",
+  "version": "1.0.0",
+  "description": "My Remotion video",
+  "repository": {},
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "@remotion/cli": "4.0.255",
+    "@remotion/tailwind": "4.0.255",
+    "@types/mdast": "^4.0.4",
+    "buffer": "^6.0.3",
+    "diff": "^7.0.0",
+    "gray-matter": "^4.0.3",
+    "mdast": "^3.0.0",
+    "path-browserify": "^1.0.1",
+    "prism-react-renderer": "^2.4.1",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "react-syntax-highlighter": "^15.6.1",
+    "rehype": "^13.0.2",
+    "rehype-parse": "^9.0.1",
+    "rehype-stringify": "^10.0.1",
+    "remark": "^15.0.1",
+    "remark-frontmatter": "^5.0.0",
+    "remark-parse": "^11.0.0",
+    "remark-stringify": "^11.0.0",
+    "remotion": "4.0.255"
+  },
+  "devDependencies": {
+    "@remotion/eslint-config-flat": "4.0.255",
+    "@types/diff": "^7.0.0",
+    "@types/react": "19.0.0",
+    "@types/react-syntax-highlighter": "^15.5.13",
+    "@types/web": "0.0.166",
+    "eslint": "9.14.0",
+    "prettier": "3.3.3",
+    "typescript": "5.5.4"
+  },
+  "scripts": {
+    "dev": "remotion studio",
+    "build": "remotion bundle",
+    "upgrade": "remotion upgrade",
+    "lint": "eslint src && tsc"
+  },
+  "sideEffects": [
+    "*.css"
+  ]
+}

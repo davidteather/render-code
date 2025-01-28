@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.diff-added {
+  background: rgba(100, 255, 100, 0.15);
+  border-left: 0px solid #00ff00;
+  padding-left: 4px;
+  margin-left: -4px;
+  position: relative;
+}
+
+.diff-added::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+}
