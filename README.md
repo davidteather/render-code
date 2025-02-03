@@ -20,16 +20,16 @@ I've created this to easily convert a markdown file representing this tutorial -
 
 ## Usage
 
-1. Define a markdown file see examples in [examples/basic.md], the basic idea is each code block is a "segment"/frame
+1. Define a markdown file see examples in [examples/basic.md](./examples/basic.md), the basic idea is each code block is a "segment"/frame
 2. `python main.py render examples/basic.md`
 3. Open up premiere pro with a new project, create a sequence
 4. `python main.py export examples/basic.md`
 
 ## Output Examples
 
-### Remotion Output
+### Remotion Output 
 
-Check out the example mp4 [here](./examples/basic/out/MyComp.mp4)
+Check out the example mp4 [here](./examples/basic/out/MyComp.mp4) or on [youtube](https://youtu.be/6bZJ1EI8RjA)
 
 ### Premiere Pro Output
 
