@@ -44,16 +44,24 @@ def _trim_video_if_possible(remotion_out: Path, default_fps: int = 30) -> None:
         blocks = metadata.get("blocks", [])
         trim_safety = int(metadata.get("trimSafetyFrames", 0))
         fps = int(metadata.get("fps", default_fps)) or default_fps
-        # Prefer totalFrames (end of last animation) + small safety to avoid overestimation from per-block tails
-        total_frames = int(metadata.get("totalFrames", 0))
-        if total_frames > 0:
-            end_frames = total_frames + trim_safety
-        else:
-            if not blocks:
-                return
-            extra_frames = int(metadata.get("extraFramesPerBlock", 0))
+        # Prefer precise end at: last.start + last.duration + highlightHold + tailHold + safety
+        # Fall back to totalFrames + safety
+        end_frames = 0
+        if blocks:
             last = blocks[-1]
-            end_frames = int(last.get("start", 0)) + int(last.get("duration", 0)) + extra_frames + trim_safety
+            highlight_holds = metadata.get("perBlockHighlightHoldFrames", [])
+            tail_holds = metadata.get("perBlockTailFrames", [])
+            if isinstance(highlight_holds, list) and isinstance(tail_holds, list) and len(highlight_holds) == len(blocks) == len(tail_holds):
+                end_frames = int(last.get("start", 0)) + int(last.get("duration", 0)) + int(highlight_holds[-1]) + int(tail_holds[-1]) + trim_safety
+            else:
+                total_frames = int(metadata.get("totalFrames", 0))
+                if total_frames > 0:
+                    end_frames = total_frames + trim_safety
+                else:
+                    extra_frames = int(metadata.get("extraFramesPerBlock", 0))
+                    end_frames = int(last.get("start", 0)) + int(last.get("duration", 0)) + extra_frames + trim_safety
+        else:
+            return
 
         # Prepare trim command
         duration_seconds = max(end_frames / float(fps), 0.0)
@@ -92,16 +100,18 @@ def main(args):
     public_dir = remotion_dir / "public"
     public_dir.mkdir(parents=True, exist_ok=True)
 
-    # Copy markdown into remotion/public as input.md
-    input_md = public_dir / "input.md"
+    # Decide markdown target filename in public
+    target_name = args.markdown_file if getattr(args, 'markdown_file', None) else "input.md"
+    input_md = public_dir / target_name
     shutil.copyfile(file_path, input_md)
 
-    # Run remotion render with MARKDOWN_FILE set
+    # Run remotion render (no env overrides; composition reads props/defaults)
     env = os.environ.copy()
-    env["MARKDOWN_FILE"] = "input.md"
-
+    # Select composition: preview or default
+    comp_id = "MyCompPreview" if getattr(args, 'preview', False) else "MyComp"
+    cmd = ["npx", "remotion", "render", comp_id]
     subprocess.run(
-        ["npx", "remotion", "render"],
+        cmd,
         cwd=str(remotion_dir),
         env=env,
         check=True,

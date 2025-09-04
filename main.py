@@ -3,6 +3,7 @@ from cli.commands.setup import main as setup_main
 from cli.commands.render_video import main as render_main
 from cli.commands.export_project import main as export_main
 
+
 def create_parser():
     parser = argparse.ArgumentParser(description="Render Markdown into animated code tutorials.")
     subparsers = parser.add_subparsers(help="Commands")
@@ -14,6 +15,8 @@ def create_parser():
     # Subcommand for rendering video using Remotion
     parser_render = subparsers.add_parser('render', help='Render a video from markdown using Remotion')
     parser_render.add_argument('file', help="Path to the markdown file")
+    parser_render.add_argument('--preview', action='store_true', help='Enable preview mode (lower res/fps, faster)')
+    parser_render.add_argument('--markdown-file', type=str, help='Name to use inside remotion/public (default: input.md)')
     parser_render.set_defaults(func=render_main)
 
     # Subcommand for exporting the project to Premiere Pro
@@ -23,10 +26,12 @@ def create_parser():
 
     return parser
 
+
 def main():
     parser = create_parser()
     args = parser.parse_args()
     args.func(args)
+
 
 if __name__ == "__main__":
     main()

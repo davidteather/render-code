@@ -6,9 +6,16 @@ const instantChanges = ANIMATION.instantChanges;
 export type CodeBlockMetadata = {
   content: string;
   language: string;
-  start: number;
-  duration: number;
-  addedChars: number;
+  start: number; // start frame of typing phase
+  duration: number; // duration in frames of typing phase
+  addedChars: number; // number of newly added characters in this block vs previous
+};
+
+export type AnimationPhases = {
+  typingStart: number; // == start
+  typingDuration: number; // == duration
+  highlightHold: number; // frames to keep highlight after typing
+  nonHighlightTail: number; // frames after highlight to show the static state
 };
 
 export function computeCodeBlockMetadata(allCodeBlocks: any[], fpsScale: number = 1, fps: number = 30): {

@@ -3,19 +3,17 @@ import { useVideoConfig, useCurrentFrame, staticFile } from 'remotion';
 import { parseMarkdown } from './markdownParser/parseMarkdown';
 import CodeBlockAnimation from './components/CodeBlockAnimation';
 import { ParsedMarkdown } from './models';
-import { COMPOSITION, ENV, THEME } from './config';
+import { COMPOSITION, THEME } from './config';
 
-export const MyComposition = () => {
+type MyCompProps = { markdownFile?: string };
+
+export const MyComposition: React.FC<MyCompProps> = ({ markdownFile }) => {
   const { fps, durationInFrames, width, height } = useVideoConfig();
   const frame = useCurrentFrame();
 
   const [markdownData, setMarkdownData] = useState<ParsedMarkdown | null>(null);
 
-  if (ENV.requireMarkdownEnv && process.env[ENV.markdownEnvVar] === undefined) {
-    throw new Error(`Please set the ${ENV.markdownEnvVar} environment variable.`);
-  }
-
-  const inputFilePath = staticFile(process.env[ENV.markdownEnvVar] || ENV.defaultMarkdownFile);
+  const inputFilePath = staticFile(markdownFile || 'input.md');
 
   // Fetch and parse markdown data on component mount
   useEffect(() => {

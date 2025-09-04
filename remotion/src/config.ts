@@ -23,28 +23,18 @@ export type CompositionConfig = {
 };
 
 export const COMPOSITION: CompositionConfig = {
-  id: "MyComp",
-  width: 3840,
-  height: 2160,
-  fps: 60,
-  backgroundColor: "#282c34",
-  maxDurationSeconds: 30,
+  id: "MyComp", // Output name and folder id for artifacts
+  width: 3840, // Canvas width
+  height: 2160, // Canvas height
+  fps: 60, // Global frame rate; higher = smoother/more frames to render
+  backgroundColor: "#282c34", // Page background color (visible outside stage if any padding)
+  maxDurationSeconds: 30, // Placeholder ceiling; final is trimmed to content length
 };
 
-// Environment and input
-export type EnvConfig = {
-  /** Environment variable name that points to the markdown file within public/. */
-  markdownEnvVar: string;
-  /** Default markdown file used when an explicit value is provided; kept for reference. */
-  defaultMarkdownFile: string;
-  /** If true, throw when markdownEnvVar is not set. */
-  requireMarkdownEnv: boolean;
-};
-
-export const ENV: EnvConfig = {
-  markdownEnvVar: "MARKDOWN_FILE",
-  defaultMarkdownFile: "input.md",
-  requireMarkdownEnv: true,
+export const COMPOSITION_PREVIEW: Partial<CompositionConfig> & { id: string } = {
+  id: "MyCompPreview",
+  width: 1920,
+  height: 1080,
 };
 
 // Theme and layout
@@ -72,16 +62,16 @@ export type ThemeConfig = {
 };
 
 export const THEME: ThemeConfig = {
-  pageBackground: "#282c34",
-  stageBackground: "#1e1e1e",
-  codeBackground: "#2d2d2d",
-  codeBorderRadiusPx: 8,
-  codeShadow: "0 8px 30px rgba(0,0,0,0.3)",
-  filenameBarBackground: "#252526",
-  filenameBarTextColor: "#888",
-  filenameBarBorderColor: "#404040",
-  codeTextColor: "#d4d4d4",
-  codeFontFamily: '"Fira Code", monospace',
+  pageBackground: "#282c34", // Overall page background under the composition
+  stageBackground: "#1e1e1e", // Main stage backdrop color behind code blocks
+  codeBackground: "#2d2d2d", // Code pane background
+  codeBorderRadiusPx: 8, // Rounded corner radius of code container
+  codeShadow: "0 8px 30px rgba(0,0,0,0.3)", // Elevation shadow for the code container
+  filenameBarBackground: "#252526", // Title bar background (if/when shown)
+  filenameBarTextColor: "#888", // Title bar text color
+  filenameBarBorderColor: "#404040", // Divider under the title bar
+  codeTextColor: "#d4d4d4", // Default code foreground color
+  codeFontFamily: '"Fira Code", monospace', // Monospace font used for rendering code
 };
 
 export type LayoutConfig = {
@@ -110,17 +100,17 @@ export type LayoutConfig = {
 };
 
 export const LAYOUT: LayoutConfig = {
-  mobileBreakpointPx: 768,
-  codeFontSizeMobile: "1.6rem",
-  codeFontSizeDesktop: "2rem",
-  codeFontSizeDesktop4k: "2.6rem",
-  codeMaxWidthDesktop: "80ch",
-  codeMaxWidthDesktop4k: "90ch",
-  codeMaxWidthMobile: "90%",
-  codePaddingPx: 20,
-  staticVerticalPaddingPx: 40,
-  filenameBarHeightPx: 44,
-  staticLineHeightMultiplier: 1.5,
+  mobileBreakpointPx: 768, // Below this width, mobile font sizes/max-widths apply
+  codeFontSizeMobile: "1.6rem", // Code font size for narrow/mobile viewports
+  codeFontSizeDesktop: "2rem", // Code font size for desktop FHD/QHD
+  codeFontSizeDesktop4k: "2.6rem", // Larger default for 4K so text isn’t too small
+  codeMaxWidthDesktop: "80ch", // Limits line length on desktop for readability
+  codeMaxWidthDesktop4k: "90ch", // Slightly wider lines on 4K to match larger text
+  codeMaxWidthMobile: "90%", // Mobile max width relative to viewport
+  codePaddingPx: 20, // Inner padding of the <pre> code container
+  staticVerticalPaddingPx: 40, // Extra vertical budget when precomputing block heights
+  filenameBarHeightPx: 44, // Reserved height for optional filename bar
+  staticLineHeightMultiplier: 1.5, // Line height multiplier; higher = more vertical spacing
 };
 
 // Animation pacing and behavior
@@ -156,20 +146,20 @@ export type AnimationConfig = {
 };
 
 export const ANIMATION: AnimationConfig = {
-  timingMultiplier: 0.3,
-  transitionSeconds: 0.67, // ~20 frames at 30fps
-  instantChanges: false,
-  smallCharsFastThreshold: 12,
-  minDurationSmallSnippetSeconds: 0.27, // ~8 frames at 30fps
-  smallSnippetSecondsPerChar: 1 / 30, // ~1 frame at 30fps per char
-  largeSnippetSecondsPerChar: 0.3 / 30, // ~0.3 frames at 30fps per char
-  minDurationLargeSnippetSeconds: 0.67, // ~20 frames at 30fps
-  tailHoldMinSeconds: 0.4, // ~12 frames at 30fps
-  tailHoldMaxSeconds: 0.93, // ~28 frames at 30fps
-  tailHoldScaleBaseSeconds: 8 / 30, // base 8 frames at 30fps
-  tailHoldScaleSecondsPerChar: 0.5 / 30, // 0.5 frames per char at 30fps
-  lastBlockTailBonusSeconds: 0.1, // ~3 frames at 30fps
-  trimSafetySeconds: 0.2,
+  timingMultiplier: 1, // Global pacing knob: <1 = faster overall; >1 = slower overall
+  transitionSeconds: 0.67, // Time between blocks; higher adds more pause between steps (~20f@30fps)
+  instantChanges: false, // If true, typing is instantaneous (debug/demo mode)
+  smallCharsFastThreshold: 12, // Typing ≤ this count uses the “small snippet” timing curve (faster)
+  minDurationSmallSnippetSeconds: 0.27, // Minimum typing time for short snippets (~8f@30fps)
+  smallSnippetSecondsPerChar: 1 / 30, // Typing seconds per char for small snippets (~1f@30fps/char). Higher = slower typing
+  largeSnippetSecondsPerChar: 0.3 / 30, // Typing seconds per char for large snippets. Higher = slower typing
+  minDurationLargeSnippetSeconds: 0.67, // Minimum typing time for larger snippets (~20f@30fps)
+  tailHoldMinSeconds: 0.4, // Minimum time to keep highlight on after typing (~12f@30fps). Lower = snappier
+  tailHoldMaxSeconds: 0.93, // Clamp for highlight/tail hold. Higher = can hang longer (~28f@30fps)
+  tailHoldScaleBaseSeconds: 8 / 30, // Base for scaling hold vs. added chars (start point). Higher = more baseline hang
+  tailHoldScaleSecondsPerChar: 0.5 / 30, // Additional hold per added char. Higher = longer hang for bigger diffs
+  lastBlockTailBonusSeconds: 0.1, // Extra time after final block completes (~3f@30fps). Higher = longer end card
+  trimSafetySeconds: 0.2, // Extra seconds added at trimming only to avoid accidental cutoffs
 };
 
 

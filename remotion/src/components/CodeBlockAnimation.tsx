@@ -4,15 +4,9 @@ import { AbsoluteFill, useCurrentFrame, useVideoConfig, Sequence, spring, Artifa
 import { CodeBlock } from './CodeBlock';
 import { computeCodeBlockMetadata } from '../calculations/animation_length';
 import { ANIMATION, THEME } from '../config';
+import { computePerBlockHolds, computeAdjustedHighlightHold } from '../calculations/animation_phases';
 
-const computeTailFrames = (addedChars: number, fps: number): number => {
-  const m = ANIMATION.timingMultiplier || 1;
-  const factor = m > 0 ? m : 1;
-  const minHold = Math.round(ANIMATION.tailHoldMinSeconds * factor * fps);
-  const maxHold = Math.round(ANIMATION.tailHoldMaxSeconds * factor * fps);
-  const scaled = Math.round((ANIMATION.tailHoldScaleBaseSeconds + addedChars * ANIMATION.tailHoldScaleSecondsPerChar) * factor * fps);
-  return Math.max(minHold, Math.min(maxHold, scaled));
-};
+// Holds are computed in calculations/animation_phases.ts
 
 const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
 
@@ -26,22 +20,12 @@ const CodeBlockAnimation: React.FC<{ markdown: any }> = ({ markdown }) => {
     [allCodeBlocks, fps]
   );
 
-  // Base hold per block
-  const baseHoldPerBlock = blocks.map((b) => Math.round(computeTailFrames(b.addedChars, fps) * 1.3));
-
-  // Split into two phases: highlight-hold and non-highlight tail, both equal to baseHold
-  const perBlockHighlightHoldFrames = baseHoldPerBlock;
-  const perBlockTailFrames = baseHoldPerBlock;
-
-  // Ensure combined hold covers any inter-block gap to avoid blanks
-  const adjustedHighlightHold = perBlockHighlightHoldFrames.map((hold, i) => {
-    const next = blocks[i + 1];
-    const interBlockGap = next ? Math.max(0, next.start - (blocks[i].start + blocks[i].duration)) : 0;
-    const combined = hold + perBlockTailFrames[i];
-    if (combined >= interBlockGap) return hold;
-    const deficit = interBlockGap - combined;
-    return hold + deficit; // extend highlight-hold to cover gap
-  });
+  // Base holds using extracted helpers
+  const addedChars = blocks.map((b) => b.addedChars);
+  const { highlight: perBlockHighlightHoldFrames, tail: perBlockTailFrames } = computePerBlockHolds(addedChars, fps);
+  const starts = blocks.map((b) => b.start);
+  const durations = blocks.map((b) => b.duration);
+  const adjustedHighlightHold = computeAdjustedHighlightHold(starts, durations, perBlockHighlightHoldFrames, perBlockTailFrames);
 
   const lastBlockCombinedTail = (() => {
     const i = blocks.length - 1;

@@ -1,7 +1,7 @@
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
 import matter from 'gray-matter';
-import { MarkdownFrontmatter, ParsedMarkdown, CodeBlock } from '../models';
+import { MarkdownFrontmatter, ParsedMarkdown, CodeBlock, TypedCodeBlock } from '../models';
 
 /**
  * Fetches the markdown file from the provided URL, parses it, and extracts frontmatter and code blocks.
@@ -75,10 +75,22 @@ function extractSectionsFromAST(ast: any): { title: string, codeBlocks: CodeBloc
 
     if (node.type === 'code') {
       if (currentSection) {
+        // Support lang:path/to/file.ext pattern for future multi-file projects
+        const langRaw: string = node.lang || 'plaintext';
+        let language = langRaw;
+        let filePath: string | undefined;
+        const colonIdx = langRaw.indexOf(':');
+        if (colonIdx > 0) {
+          language = langRaw.slice(0, colonIdx);
+          filePath = langRaw.slice(colonIdx + 1);
+        }
+
         currentSection.codeBlocks.push({
-          language: node.lang || 'plaintext',
+          language,
           content: node.value,
-        });
+          // @ts-ignore retain for future extension
+          filePath,
+        } as TypedCodeBlock as unknown as CodeBlock);
       }
     }
   });
