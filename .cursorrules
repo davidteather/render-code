@@ -1,0 +1,79 @@
+Repo purpose
+- Define entire programming videos as Markdown and render code-diff animations via Remotion.
+- Output an edit-friendly video and an editor timeline (Final Cut Pro focus; Premiere kept as legacy/TODO).
+
+Supported OS
+- macOS (primary for now).
+
+CLI entrypoints
+- `python main.py setup` → install `remotion/` deps.
+- `python main.py render <file.md>` → render Remotion video/artifacts for the markdown.
+- `python main.py export <file.md>` → export timeline (currently Premiere integration; Final Cut Pro planned).
+
+Defaults and configuration
+- Default output: 4K (3840x2160) at 60fps. Make configurable.
+- Config file: `settings.json` (planned) with override via CLI arg (e.g., `--settings path/to/settings.json`).
+- Proposed CLI flags (to implement):
+  - `--settings <path>`: load render/export config.
+  - `--fps <number>` and `--size <WIDTHxHEIGHT>` or `--width/--height`.
+  - `--composition <id>`: Remotion composition id.
+  - `--markdown-file <name>`: set env for Remotion (maps to `MARKDOWN_FILE`).
+  - `--out <dir>`: destination for artifacts/video.
+
+Architecture map
+- Python CLI: `main.py`, `cli/commands/*.py`.
+  - `render_video.py`: copy markdown to `remotion/public/input.md`, run `npx remotion render`, copy outputs to `<md>/out`.
+  - `export_project.py`: calls `core/premiere_pro.export(...)` (legacy path).
+  - `setup.py`: installs `remotion` deps.
+- Remotion app: `remotion/` TypeScript React.
+  - `src/Root.tsx` defines composition `MyComp`.
+  - `src/Composition.tsx` loads markdown via `staticFile(process.env.MARKDOWN_FILE)` and renders `CodeBlockAnimation`.
+  - `src/markdownParser/parseMarkdown.ts`: frontmatter + H1 sections + fenced code blocks → sections.
+  - `src/calculations/animation_length.ts`: per-block duration based on added chars (`diff`).
+  - `src/components/CodeBlockAnimation.tsx` (metadata version): emits `Artifact` `metadata.json` containing block timings and sizing metrics.
+  - `src/components/CodeBlock.tsx`: Prism-based highlighting with progressive reveal.
+- Premiere integration: `core/premiere_pro.py` uses `pymiere` to import, place, and razor-cut by metadata (legacy/TODO).
+- Final Cut Pro integration (planned): generate FCPXML based on metadata for easy timeline edits in FCP.
+
+Content model (planned extensions)
+- Markdown defines the whole video.
+- Each fenced code block is a new animation step based on diff from previous block.
+- Multi-file projects: support per-block file path to separate tracks and compute diffs per file.
+  - Proposed code fence syntax: ```lang:path/to/file.ext (parser to read `lang:file` pattern)
+- Cutaways: support non-code blocks (console runs, images, videos) via typed blocks in markdown/frontmatter, e.g.,
+  - Frontmatter or inline directives: `:::cutaway type=console`, `:::cutaway type=image src=...`, `:::cutaway type=video src=...`.
+- Theme and layout from `settings.json` (font, theme, margins, line height, filename display, aspect, fps).
+
+Important behaviors
+- Ensure `MARKDOWN_FILE` is set for Remotion render. Current flow copies to `public/input.md`; prefer passing `MARKDOWN_FILE=input.md` at render time or via `--markdown-file`.
+- Keep composition duration aligned with computed total frames in metadata (if dynamic duration is added later). For now, user prefers not to auto-match.
+- Prefer 4K/60 defaults in `Root.tsx` (configurable via settings/CLI when implemented).
+
+Security and resiliency
+- Replace `os.system` with `subprocess.run([...], check=True)` where feasible.
+- Sanitize user-provided paths; avoid shell interpolation.
+
+Roadmap anchors (see TODO.md)
+- Settings file support and CLI overrides.
+- Multi-file diffing and per-track rendering.
+- Cutaway block types (console/image/video) in parser + renderer.
+- FCPXML timeline export; de-emphasize Premiere but keep compatibility path.
+
+Gotchas
+- `Composition.tsx` throws if `MARKDOWN_FILE` is unset.
+- There are two `CodeBlockAnimation.tsx` files; prefer the one using `computeCodeBlockMetadata` (emits metadata).
+- Hardcoded composition in `Root.tsx`; update to 4K/60 defaults and consider reading from settings later.
+
+Quick commands
+- Setup: `python main.py setup`
+- Render example: `python main.py render examples/basic.md`
+- Export (legacy Premiere): `python main.py export examples/basic.md`
+
+Markdown authoring conventions
+- Multi-file code fences: prefer `lang:path/to/file.ext`. Also allow attributes: `lang:{title="file.ext", path="path/to/file.ext"}` for future-proofing.
+- Cutaways: block directives with attributes and full paths, e.g., `:::cutaway type=console`, `:::cutaway type=image src="/absolute/or/relative" width=... height=...`, `:::cutaway type=video src="..." start=... end=...`.
+- Console I/O: author provides both inputs and outputs; renderer does not auto-run commands. Optionally simulate typing/reveal.
+
+Per-project settings
+- Each project may include a folder with `settings.json` to override global defaults (fps, resolution, theme, layout, pacing, file naming, track mapping).
+- CLI `--settings` should point to project-specific settings. If both present, CLI flag wins over repo root `settings.json`.
