@@ -42,14 +42,19 @@ def _trim_video_if_possible(remotion_out: Path, default_fps: int = 30) -> None:
             metadata = json.load(f)
 
         blocks = metadata.get("blocks", [])
-        extra_frames = int(metadata.get("extraFramesPerBlock", 0))
-        if not blocks:
-            return
-        last = blocks[-1]
-        end_frames = int(last.get("start", 0)) + int(last.get("duration", 0)) + extra_frames
+        trim_safety = int(metadata.get("trimSafetyFrames", 0))
+        fps = int(metadata.get("fps", default_fps)) or default_fps
+        # Prefer totalFrames (end of last animation) + small safety to avoid overestimation from per-block tails
+        total_frames = int(metadata.get("totalFrames", 0))
+        if total_frames > 0:
+            end_frames = total_frames + trim_safety
+        else:
+            if not blocks:
+                return
+            extra_frames = int(metadata.get("extraFramesPerBlock", 0))
+            last = blocks[-1]
+            end_frames = int(last.get("start", 0)) + int(last.get("duration", 0)) + extra_frames + trim_safety
 
-        # Derive fps; fallback to default
-        fps = default_fps
         # Prepare trim command
         duration_seconds = max(end_frames / float(fps), 0.0)
         if duration_seconds <= 0:

@@ -5,6 +5,7 @@ import Prism from 'prismjs';
 import 'prismjs/themes/prism-tomorrow.css';
 import './prism-config';
 import 'prismjs/components/prism-python';
+import { LAYOUT, THEME } from '../config';
 
 interface CodeBlockProps {
   oldCode: string;
@@ -31,8 +32,9 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
   maxLineLength,
   maxLineCount,
 }) => {
-  const { width } = useVideoConfig();
-  const isMobile = width < 768;
+  const { width, height } = useVideoConfig();
+  const isMobile = width < LAYOUT.mobileBreakpointPx;
+  const is4k = width >= 3840 && height >= 2160;
 
   const highlightedCode = useMemo(() => {
     // During tail frames (not active), show the final code without diff highlight
@@ -41,59 +43,63 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
     }
 
     const changes = diffChars(oldCode, newCode);
-    const visibleArray = oldCode.split(''); // Start with old code as an array
-    let currentPosition = 0;
-    let newInsertions = 0;
-    let addedCharacters = 0;
-    
-    // Count total added characters for proper progress scaling
+    let totalAdded = 0;
     for (const part of changes) {
-      if (part.added) {
-        addedCharacters += part.value.length;
-      }
+      if (part.added) totalAdded += part.value.length;
     }
 
-    const targetAdditions = Math.floor(progress * addedCharacters);
+    const targetAdditions = Math.floor(progress * totalAdded);
     let addedSoFar = 0;
-  
+
+    const renderedParts: string[] = [];
     for (const part of changes) {
       if (part.removed) {
+        // Removed segments are not present in the new code
         continue;
       }
-      
-      const isAddition = part.added;
-      const content = part.value;
-      
-      if (isAddition) {
-        const visibleLength = Math.min(content.length, targetAdditions - addedSoFar);
-        if (visibleLength <= 0) break;
 
-        const wrappedContent = `KEYDIFFMATCHKEY${content.slice(0, visibleLength)}KEYDIFFMATCHENDKEY`;
-        visibleArray.splice(currentPosition + newInsertions, 0, ...wrappedContent);
-        newInsertions += wrappedContent.length;
-        addedSoFar += visibleLength;
+      if (part.added) {
+        const remaining = targetAdditions - addedSoFar;
+        if (remaining <= 0) {
+          // Not yet typed; skip entirely so it appears later
+          continue;
+        }
+        const visibleLen = Math.min(part.value.length, remaining);
+        if (visibleLen > 0) {
+          renderedParts.push(
+            `KEYDIFFMATCHKEY${part.value.slice(0, visibleLen)}KEYDIFFMATCHENDKEY`
+          );
+          addedSoFar += visibleLen;
+        }
+        continue;
       }
-      
-      currentPosition += content.length;
+
+      // Unchanged text remains visible throughout
+      renderedParts.push(part.value);
     }
-  
-    const visibleCode = visibleArray.join('');
-  
-    // Highlight with Prism
+
+    const visibleCode = renderedParts.join("");
+
+    // Highlight with Prism, then apply diff wrappers
     const highlighted = Prism.highlight(visibleCode, Prism.languages[language], language);
-  
-    return highlighted.replace(/KEYDIFFMATCHKEY/g, '<span class="diff-added">')
-                      .replace(/KEYDIFFMATCHENDKEY/g, '</span>');
+
+    return highlighted
+      .replace(/KEYDIFFMATCHKEY/g, '<span class="diff-added">')
+      .replace(/KEYDIFFMATCHENDKEY/g, '</span>');
   }, [oldCode, newCode, language, progress, isActive]);
 
   const staticStyles = useMemo(() => {
     if (!isStatic) return {};
 
     const containerWidth = `${(maxLineLength || 1) + 4}ch`;
-    const lineHeight = 1.5;
-    const verticalPadding = 40;
-    const fileNameHeight = fileName ? 44 : 0;
-    const lineHeightPx = parseInt(isMobile ? '1.6rem' : '2rem', 10) * lineHeight;
+    const lineHeight = LAYOUT.staticLineHeightMultiplier;
+    const verticalPadding = LAYOUT.staticVerticalPaddingPx;
+    const fileNameHeight = fileName ? LAYOUT.filenameBarHeightPx : 0;
+    const fontSize = isMobile
+      ? LAYOUT.codeFontSizeMobile
+      : (is4k ? LAYOUT.codeFontSizeDesktop4k : LAYOUT.codeFontSizeDesktop);
+    const numericFontSizePx = parseFloat(fontSize) * 16; // rem -> px
+    const lineHeightPx = numericFontSizePx * lineHeight;
 
     return {
       width: containerWidth,
@@ -103,8 +109,12 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
   }, [isStatic, maxLineLength, maxLineCount, fileName, isMobile]);
 
   const codeStyles = {
-    fontSize: isMobile ? '1.6rem' : '2rem',
-    maxWidth: isMobile ? '90%' : '80ch',
+    fontSize: isMobile
+      ? LAYOUT.codeFontSizeMobile
+      : (is4k ? LAYOUT.codeFontSizeDesktop4k : LAYOUT.codeFontSizeDesktop),
+    maxWidth: isMobile
+      ? LAYOUT.codeMaxWidthMobile
+      : (is4k ? LAYOUT.codeMaxWidthDesktop4k : LAYOUT.codeMaxWidthDesktop),
     ...(isStatic && { 
       overflow: 'hidden auto',
       minWidth: staticStyles.width 
@@ -114,10 +124,10 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
   return (
     <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center' }}>
       <div style={{
-        fontFamily: '"Fira Code", monospace',
-        backgroundColor: '#2d2d2d',
-        borderRadius: '8px',
-        boxShadow: '0 8px 30px rgba(0,0,0,0.3)',
+        fontFamily: THEME.codeFontFamily,
+        backgroundColor: THEME.codeBackground,
+        borderRadius: `${THEME.codeBorderRadiusPx}px`,
+        boxShadow: THEME.codeShadow,
         overflow: 'hidden',
         transform: `scale(${isMobile ? 0.8 : 1})`,
         ...codeStyles,
@@ -125,9 +135,9 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
       }}>
         {fileName && (<div style={{
           padding: '12px 20px',
-          backgroundColor: '#252526',
-          borderBottom: '1px solid #404040',
-          color: '#888',
+          backgroundColor: THEME.filenameBarBackground,
+          borderBottom: `1px solid ${THEME.filenameBarBorderColor}`,
+          color: THEME.filenameBarTextColor,
           fontSize: '0.9em',
         }}>
           {fileName}
@@ -135,13 +145,13 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
         
         <pre className={`language-${language}`} style={{
           margin: 0,
-          padding: '20px',
+          padding: `${LAYOUT.codePaddingPx}px`,
           overflow: 'hidden',
         }}>
           <code
             dangerouslySetInnerHTML={{ __html: highlightedCode }}
             style={{
-              color: '#d4d4d4',
+              color: THEME.codeTextColor,
               whiteSpace: 'pre-wrap',
               display: 'block',
             }}

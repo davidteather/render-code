@@ -1,7 +1,7 @@
 import { diffChars } from 'diff';
+import { ANIMATION } from '../config';
 
-const TRANSITION_DURATION = 20;
-const instantChanges = false;
+const instantChanges = ANIMATION.instantChanges;
 
 export type CodeBlockMetadata = {
   content: string;
@@ -11,14 +11,14 @@ export type CodeBlockMetadata = {
   addedChars: number;
 };
 
-export function computeCodeBlockMetadata(allCodeBlocks: any[]): {
+export function computeCodeBlockMetadata(allCodeBlocks: any[], fpsScale: number = 1, fps: number = 30): {
   blocks: CodeBlockMetadata[];
   totalFrames: number;
   maxLineLengthGlobal: number;
   maxLineCountGlobal: number;
 } {
   let currentFrame = 0;
-  const SMALL_CHARS_FAST_THRESHOLD = 12;
+  const SMALL_CHARS_FAST_THRESHOLD = ANIMATION.smallCharsFastThreshold;
 
   const blocks = allCodeBlocks.map((block: any, index: number) => {
     const prevCode = index > 0 ? allCodeBlocks[index - 1].content : '';
@@ -27,27 +27,36 @@ export function computeCodeBlockMetadata(allCodeBlocks: any[]): {
       .filter(c => c.added)
       .reduce((a, c) => a + c.value.length, 0);
 
-    let duration: number;
+    let durationSeconds: number;
     if (instantChanges) {
-      duration = 0.000001;
+      durationSeconds = 0.000001;
     } else {
       if (addedChars <= SMALL_CHARS_FAST_THRESHOLD) {
-        // Accelerate for small snippets: min 8 frames, ~1 frame per char
-        duration = Math.max(8, Math.round(addedChars * 1.0));
+        durationSeconds = Math.max(
+          ANIMATION.minDurationSmallSnippetSeconds,
+          addedChars * ANIMATION.smallSnippetSecondsPerChar
+        );
       } else {
-        // Larger snippets: proportional with a sensible floor
-        duration = Math.max(Math.round(addedChars * 0.3), 20);
+        durationSeconds = Math.max(
+          addedChars * ANIMATION.largeSnippetSecondsPerChar,
+          ANIMATION.minDurationLargeSnippetSeconds
+        );
       }
     }
 
     const start = currentFrame;
-    currentFrame += duration + TRANSITION_DURATION;
+    // Multiplier semantics: <1 speeds up, >1 slows down
+    const m = ANIMATION.timingMultiplier || 1;
+    const factor = m > 0 ? m : 1; // m=0.3 → 30% time (faster), m=2 → 200% time (slower)
+    const scaledDuration = Math.round(durationSeconds * factor * fps);
+    const scaledTransition = Math.round(ANIMATION.transitionSeconds * factor * fps);
+    currentFrame += scaledDuration + scaledTransition;
 
     return {
       content: block.content,
       language: block.language,
       start,
-      duration,
+      duration: scaledDuration,
       addedChars
     };
   });

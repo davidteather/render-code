@@ -37,6 +37,28 @@ export async function parseMarkdown(url: string): Promise<ParsedMarkdown> {
 }
 
 /**
+ * Parses markdown content from a string (Node-friendly; no fetch required).
+ */
+export function parseMarkdownString(markdownContent: string): ParsedMarkdown {
+  const { data: frontmatter, content } = matter(markdownContent);
+
+  const parsedFrontmatter: MarkdownFrontmatter = {
+    theme: frontmatter.theme || 'light',
+  };
+
+  const markdownAST = unified()
+    .use(remarkParse)
+    .parse(content);
+
+  const sections = extractSectionsFromAST(markdownAST);
+
+  return {
+    frontmatter: parsedFrontmatter,
+    sections: sections,
+  };
+}
+
+/**
  * Extracts sections and code blocks from the markdown AST.
  */
 function extractSectionsFromAST(ast: any): { title: string, codeBlocks: CodeBlock[] }[] {

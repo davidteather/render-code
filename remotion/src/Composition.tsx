@@ -3,6 +3,7 @@ import { useVideoConfig, useCurrentFrame, staticFile } from 'remotion';
 import { parseMarkdown } from './markdownParser/parseMarkdown';
 import CodeBlockAnimation from './components/CodeBlockAnimation';
 import { ParsedMarkdown } from './models';
+import { COMPOSITION, ENV, THEME } from './config';
 
 export const MyComposition = () => {
   const { fps, durationInFrames, width, height } = useVideoConfig();
@@ -10,11 +11,11 @@ export const MyComposition = () => {
 
   const [markdownData, setMarkdownData] = useState<ParsedMarkdown | null>(null);
 
-  if (process.env.MARKDOWN_FILE === undefined) {
-    throw new Error('Please set the MARKDOWN_FILE environment variable.');
+  if (ENV.requireMarkdownEnv && process.env[ENV.markdownEnvVar] === undefined) {
+    throw new Error(`Please set the ${ENV.markdownEnvVar} environment variable.`);
   }
 
-  const inputFilePath = staticFile(process.env.MARKDOWN_FILE || ''); // Adjust the path as needed for your file.
+  const inputFilePath = staticFile(process.env[ENV.markdownEnvVar] || ENV.defaultMarkdownFile);
 
   // Fetch and parse markdown data on component mount
   useEffect(() => {
@@ -37,7 +38,7 @@ export const MyComposition = () => {
   }
 
   return (
-    <div style={{ width, height, backgroundColor: '#282c34', color: 'white' }}>
+    <div style={{ width, height, backgroundColor: COMPOSITION.backgroundColor, color: 'white' }}>
       <CodeBlockAnimation markdown={markdownData} />
     </div>
   );

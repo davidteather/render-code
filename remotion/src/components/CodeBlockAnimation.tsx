@@ -1,13 +1,16 @@
 
 import React, { useMemo } from 'react';
-import { AbsoluteFill, useCurrentFrame, Sequence, spring, Artifact } from 'remotion';
+import { AbsoluteFill, useCurrentFrame, useVideoConfig, Sequence, spring, Artifact } from 'remotion';
 import { CodeBlock } from './CodeBlock';
 import { computeCodeBlockMetadata } from '../calculations/animation_length';
+import { ANIMATION, THEME } from '../config';
 
-const computeTailFrames = (addedChars: number): number => {
-  const minHold = 12;
-  const maxHold = 28;
-  const scaled = Math.round(8 + addedChars * 0.5);
+const computeTailFrames = (addedChars: number, fps: number): number => {
+  const m = ANIMATION.timingMultiplier || 1;
+  const factor = m > 0 ? m : 1;
+  const minHold = Math.round(ANIMATION.tailHoldMinSeconds * factor * fps);
+  const maxHold = Math.round(ANIMATION.tailHoldMaxSeconds * factor * fps);
+  const scaled = Math.round((ANIMATION.tailHoldScaleBaseSeconds + addedChars * ANIMATION.tailHoldScaleSecondsPerChar) * factor * fps);
   return Math.max(minHold, Math.min(maxHold, scaled));
 };
 
@@ -15,15 +18,16 @@ const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
 
 const CodeBlockAnimation: React.FC<{ markdown: any }> = ({ markdown }) => {
   const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
   const allCodeBlocks = markdown.sections.flatMap((s: any) => s.codeBlocks);
 
   const { blocks, totalFrames, maxLineLengthGlobal, maxLineCountGlobal } = useMemo(
-    () => computeCodeBlockMetadata(allCodeBlocks),
-    [allCodeBlocks]
+    () => computeCodeBlockMetadata(allCodeBlocks, 1, fps),
+    [allCodeBlocks, fps]
   );
 
   // Base hold per block
-  const baseHoldPerBlock = blocks.map((b) => Math.round(computeTailFrames(b.addedChars) * 1.3));
+  const baseHoldPerBlock = blocks.map((b) => Math.round(computeTailFrames(b.addedChars, fps) * 1.3));
 
   // Split into two phases: highlight-hold and non-highlight tail, both equal to baseHold
   const perBlockHighlightHoldFrames = baseHoldPerBlock;
@@ -42,7 +46,9 @@ const CodeBlockAnimation: React.FC<{ markdown: any }> = ({ markdown }) => {
   const lastBlockCombinedTail = (() => {
     const i = blocks.length - 1;
     if (i < 0) return 15;
-    return adjustedHighlightHold[i] + perBlockTailFrames[i] + 3; // small bonus on last block
+    const m = ANIMATION.timingMultiplier || 1;
+    const factor = m > 0 ? m : 1;
+    return adjustedHighlightHold[i] + perBlockTailFrames[i] + Math.round(ANIMATION.lastBlockTailBonusSeconds * factor * fps);
   })();
 
   return (
@@ -53,25 +59,26 @@ const CodeBlockAnimation: React.FC<{ markdown: any }> = ({ markdown }) => {
           totalFrames,
           maxLineLengthGlobal,
           maxLineCountGlobal,
+          fps,
           extraFramesPerBlock: lastBlockCombinedTail,
+          trimSafetyFrames: Math.round(ANIMATION.trimSafetySeconds * fps),
           perBlockHighlightHoldFrames: adjustedHighlightHold,
           perBlockTailFrames
         }
     )} />)}
-    <AbsoluteFill style={{ backgroundColor: '#1e1e1e' }}>
+    <AbsoluteFill style={{ backgroundColor: THEME.stageBackground }}>
       {blocks.map((block: any, index: number) => {
         const localFrame = frame - block.start;
         const activeDuration = block.duration;
         const highlightHold = adjustedHighlightHold[index] ?? 20;
         const nonHighlightTail = perBlockTailFrames[index] ?? 20;
 
-        const phaseEndTyping = activeDuration;
         const phaseEndHighlight = activeDuration + highlightHold;
         const sequenceDuration = activeDuration + highlightHold + nonHighlightTail;
 
         const raw = spring({
           frame: Math.min(localFrame, activeDuration),
-          fps: 30,
+          fps,
           durationInFrames: activeDuration,
           config: { damping: 20, stiffness: 200, mass: 0.5 }
         });

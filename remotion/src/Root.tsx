@@ -1,17 +1,18 @@
 import "./tailwind.css";
 import { Composition } from "remotion";
 import { MyComposition } from "./Composition";
+import { COMPOSITION } from "./config";
 
 export const RemotionRoot: React.FC = () => {
   return (
     <>
       <Composition
-        id="MyComp"
+        id={COMPOSITION.id}
         component={MyComposition}
-        durationInFrames={1000}
-        fps={30}
-        width={1920}
-        height={1080}
+        durationInFrames={Math.round(COMPOSITION.maxDurationSeconds * COMPOSITION.fps)}
+        fps={COMPOSITION.fps}
+        width={COMPOSITION.width}
+        height={COMPOSITION.height}
       />
     </>
   );

@@ -48,6 +48,10 @@ Important behaviors
 - Ensure `MARKDOWN_FILE` is set for Remotion render. Current flow copies to `public/input.md`; prefer passing `MARKDOWN_FILE=input.md` at render time or via `--markdown-file`.
 - Keep composition duration aligned with computed total frames in metadata (if dynamic duration is added later). For now, user prefers not to auto-match.
 - Prefer 4K/60 defaults in `Root.tsx` (configurable via settings/CLI when implemented).
+- After each code/config change, render the basic example to verify end-to-end:
+  - Command: `python main.py render examples/basic.md`
+  - Check: `remotion/out/MyComp.mp4` exists and `remotion/out/MyComp/metadata.json` is generated.
+  - If render fails, ensure `MARKDOWN_FILE` is set and rebuild dependencies via `python main.py setup`.
 
 Security and resiliency
 - Replace `os.system` with `subprocess.run([...], check=True)` where feasible.
