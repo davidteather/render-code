@@ -28,7 +28,7 @@ export const COMPOSITION: CompositionConfig = {
   height: 2160, // Canvas height
   fps: 60, // Global frame rate; higher = smoother/more frames to render
   backgroundColor: "#282c34", // Page background color (visible outside stage if any padding)
-  maxDurationSeconds: 30, // Placeholder ceiling; final is trimmed to content length
+  maxDurationSeconds: 180, // Higher ceiling to prevent early cutoff; content drives actual usage
 };
 
 export const COMPOSITION_PREVIEW: Partial<CompositionConfig> & { id: string } = {
@@ -143,6 +143,18 @@ export type AnimationConfig = {
   lastBlockTailBonusSeconds: number;
   /** Extra seconds added at trim time to avoid accidental cutoff. */
   trimSafetySeconds: number;
+  /** Console typing speed in chars/sec for the command. */
+  consoleCommandCharsPerSecond: number;
+  /** Delay in seconds after the command finishes before output appears (simulated Enter). */
+  consoleEnterDelaySeconds: number;
+  /** Console output reveal speed in chars/sec (fast). */
+  consoleOutputCharsPerSecond: number;
+  /** Default seconds for an image cutaway if not specified. */
+  imageDefaultSeconds: number;
+  /** Default seconds for a video cutaway if not specified and no start/end given. */
+  videoDefaultSeconds: number;
+  /** Fallback seconds for a last video with playToEnd=true when intrinsic length is unknown. */
+  videoPlayToEndFallbackSeconds: number;
 };
 
 export const ANIMATION: AnimationConfig = {
@@ -160,6 +172,12 @@ export const ANIMATION: AnimationConfig = {
   tailHoldScaleSecondsPerChar: 0.5 / 30, // Additional hold per added char. Higher = longer hang for bigger diffs
   lastBlockTailBonusSeconds: 0.1, // Extra time after final block completes (~3f@30fps). Higher = longer end card
   trimSafetySeconds: 0.2, // Extra seconds added at trimming only to avoid accidental cutoffs
+  consoleCommandCharsPerSecond: 14, // Human-ish typing speed for commands
+  consoleEnterDelaySeconds: 0.2, // Small delay to simulate pressing Enter
+  consoleOutputCharsPerSecond: 240, // Fast output reveal
+  imageDefaultSeconds: 2.5,
+  videoDefaultSeconds: 8,
+  videoPlayToEndFallbackSeconds: 30,
 };
 
 

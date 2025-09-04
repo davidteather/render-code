@@ -44,22 +44,30 @@ def _trim_video_if_possible(remotion_out: Path, default_fps: int = 30) -> None:
         blocks = metadata.get("blocks", [])
         trim_safety = int(metadata.get("trimSafetyFrames", 0))
         fps = int(metadata.get("fps", default_fps)) or default_fps
-        # Prefer precise end at: last.start + last.duration + highlightHold + tailHold + safety
-        # Fall back to totalFrames + safety
+        # Prefer totalFrames (full timeline) + safety; fallback to last-block + holds; then extraFramesPerBlock
         end_frames = 0
-        if blocks:
+        total_frames = int(metadata.get("totalFrames", 0))
+        if total_frames > 0:
+            end_frames = total_frames + trim_safety
+        elif blocks:
             last = blocks[-1]
             highlight_holds = metadata.get("perBlockHighlightHoldFrames", [])
             tail_holds = metadata.get("perBlockTailFrames", [])
-            if isinstance(highlight_holds, list) and isinstance(tail_holds, list) and len(highlight_holds) == len(blocks) == len(tail_holds):
-                end_frames = int(last.get("start", 0)) + int(last.get("duration", 0)) + int(highlight_holds[-1]) + int(tail_holds[-1]) + trim_safety
+            if (
+                isinstance(highlight_holds, list)
+                and isinstance(tail_holds, list)
+                and len(highlight_holds) == len(blocks) == len(tail_holds)
+            ):
+                end_frames = (
+                    int(last.get("start", 0))
+                    + int(last.get("duration", 0))
+                    + int(highlight_holds[-1])
+                    + int(tail_holds[-1])
+                    + trim_safety
+                )
             else:
-                total_frames = int(metadata.get("totalFrames", 0))
-                if total_frames > 0:
-                    end_frames = total_frames + trim_safety
-                else:
-                    extra_frames = int(metadata.get("extraFramesPerBlock", 0))
-                    end_frames = int(last.get("start", 0)) + int(last.get("duration", 0)) + extra_frames + trim_safety
+                extra_frames = int(metadata.get("extraFramesPerBlock", 0))
+                end_frames = int(last.get("start", 0)) + int(last.get("duration", 0)) + extra_frames + trim_safety
         else:
             return
 
@@ -105,21 +113,28 @@ def main(args):
     input_md = public_dir / target_name
     shutil.copyfile(file_path, input_md)
 
+    # Ensure assets are available in public for cutaways
+    repo_assets = repo_root / "assets"
+    if repo_assets.exists() and repo_assets.is_dir():
+        _copy_into(repo_assets, public_dir / "assets")
+
     # Run remotion render (no env overrides; composition reads props/defaults)
     env = os.environ.copy()
-    # Select composition: preview or default
-    comp_id = "MyCompPreview" if getattr(args, 'preview', False) else "MyComp"
-    cmd = ["npx", "remotion", "render", comp_id]
-    subprocess.run(
-        cmd,
-        cwd=str(remotion_dir),
-        env=env,
-        check=True,
-    )
+    # Render preview-only if --preview set; otherwise render both main and preview for convenience
+    comp_ids = ["MyCompPreview"] if getattr(args, 'preview', False) else ["MyComp", "MyCompPreview"]
+    for comp_id in comp_ids:
+        cmd = ["npx", "remotion", "render", comp_id]
+        subprocess.run(
+            cmd,
+            cwd=str(remotion_dir),
+            env=env,
+            check=True,
+        )
 
-    # Trim trailing blank space using metadata
+    # Trim trailing blank space using metadata (skip in preview for safety)
     remotion_out = remotion_dir / "out"
-    _trim_video_if_possible(remotion_out, default_fps=30)
+    if not getattr(args, 'preview', False):
+        _trim_video_if_possible(remotion_out, default_fps=30)
 
     # Copy outputs into <md-folder>/out
     out_dir = file_path.with_suffix("") / "out"

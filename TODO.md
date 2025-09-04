@@ -5,8 +5,6 @@ Status: Alpha. Focus on macOS + Final Cut Pro. Keep Premiere as legacy.
 ## Near-term
 - [ ] Add `settings.json` support (theme, fps, resolution, file naming, extra frames, layout).
 - [ ] Add CLI flags: `--settings`, `--fps`, `--size`/`--width`/`--height`, `--composition`, `--markdown-file`, `--out`.
-- [ ] Default to 4K (3840x2160) at 60fps in `remotion/src/Root.tsx`.
-- [ ] Ensure `MARKDOWN_FILE` is set during `render` (env or CLI flag).
 - [ ] Replace `os.system` with `subprocess.run` and sanitize paths.
 
 ## Markdown model & parsing

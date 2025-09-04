@@ -4,7 +4,16 @@ import { diffChars } from 'diff';
 import Prism from 'prismjs';
 import 'prismjs/themes/prism-tomorrow.css';
 import './prism-config';
+// Prism language load order matters for JSX/TSX
+import 'prismjs/components/prism-markup';
+import 'prismjs/components/prism-clike';
+import 'prismjs/components/prism-markup-templating';
+import 'prismjs/components/prism-javascript';
+import 'prismjs/components/prism-jsx';
+import 'prismjs/components/prism-typescript';
+import 'prismjs/components/prism-tsx';
 import 'prismjs/components/prism-python';
+import 'prismjs/components/prism-go';
 import { LAYOUT, THEME } from '../config';
 
 interface CodeBlockProps {
