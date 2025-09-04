@@ -61,7 +61,7 @@ func main() {
 }
 ```
 
-:::cutaway type=video src="/assets/demo.mp4" title="Full Demo Clip" muted=true playToEnd=true
+:::cutaway type=video src="/assets/demo.mp4" title="Full Demo Clip REAL" muted=true playToEnd=true
 :::
 
 

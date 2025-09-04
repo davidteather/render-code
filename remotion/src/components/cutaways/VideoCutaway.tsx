@@ -19,6 +19,7 @@ export const VideoCutaway: React.FC<VideoCutawayProps> = ({ src, title, start, e
   const appear = spring({ frame, fps, durationInFrames: 18, config: { damping: 200 } });
 
   const startFrom = Math.max(0, Math.floor((start ?? 0) * fps));
+  // Only set endAt when an explicit end is provided to avoid ending a frame early
   const endAt = typeof end === 'number' ? Math.max(startFrom + 1, Math.floor(end * fps)) : undefined;
 
   return (

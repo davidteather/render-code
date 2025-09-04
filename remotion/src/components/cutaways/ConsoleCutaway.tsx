@@ -13,10 +13,13 @@ export type ConsoleCutawayProps = {
   outputCps?: number;
   enterDelay?: number;
   showPrompt?: boolean;
+  /** If provided, use this as the local frame (relative to sequence start). */
+  frameOverride?: number;
 };
 
-export const ConsoleCutaway: React.FC<ConsoleCutawayProps> = ({ content, title, durationFrames, prompt, commandLines, commandCps, outputCps, enterDelay, showPrompt }) => {
-  const frame = useCurrentFrame();
+export const ConsoleCutaway: React.FC<ConsoleCutawayProps> = ({ content, title, durationFrames, prompt, commandLines, commandCps, outputCps, enterDelay, showPrompt, frameOverride }) => {
+  const globalFrame = useCurrentFrame();
+  const frame = Math.max(0, (typeof frameOverride === 'number' ? frameOverride : globalFrame));
   const { fps } = useVideoConfig();
   const appear = spring({ frame, fps, durationInFrames: 18, config: { damping: 200 } });
 
@@ -69,7 +72,7 @@ export const ConsoleCutaway: React.FC<ConsoleCutawayProps> = ({ content, title, 
             fontSize: '0.9em',
           }}>{title}</div>
         )}
-        <pre style={{ margin: 0, padding: `${LAYOUT.codePaddingPx}px`, color: THEME.codeTextColor, whiteSpace: 'pre-wrap' }}>
+        <pre style={{ margin: 0, padding: `${LAYOUT.codePaddingPx}px`, color: THEME.codeTextColor, whiteSpace: 'pre-wrap', fontSize: '1.9rem', lineHeight: 1.45 }}>
 {(showPrompt ?? true) ? (<><span style={{color:'#9cdcfe'}}>{prompt ?? '$'}</span> </>) : null}{visibleCommand}
 {visibleOutput && ('\n' + visibleOutput)}
         </pre>

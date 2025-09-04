@@ -117,7 +117,7 @@ const CodeBlockAnimation: React.FC<{ markdown: any }> = ({ markdown }) => {
             {block.type === 'cutaway-image' && (
               <ImageCutaway src={block.src} title={block.title} width={block.width} height={block.height} />
             )}
-            {block.type === 'cutaway-video' && (
+            {block.type === 'cutaway-video' && localFrame < activeDuration && (
               <VideoCutaway src={block.src} title={block.title} start={block.startSec} end={block.endSec} width={block.width} height={block.height} muted={block.muted} />
             )}
             {block.type === 'cutaway-console' && (
@@ -131,6 +131,7 @@ const CodeBlockAnimation: React.FC<{ markdown: any }> = ({ markdown }) => {
                 outputCps={block.outputCps}
                 enterDelay={block.enterDelay}
                 showPrompt={block.showPrompt}
+                frameOverride={localFrame}
               />
             )}
           </Sequence>
