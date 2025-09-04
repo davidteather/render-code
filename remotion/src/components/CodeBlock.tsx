@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion';
+import { AbsoluteFill, useVideoConfig } from 'remotion';
 import { diffChars } from 'diff';
 import Prism from 'prismjs';
 import 'prismjs/themes/prism-tomorrow.css';
@@ -35,6 +35,11 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
   const isMobile = width < 768;
 
   const highlightedCode = useMemo(() => {
+    // During tail frames (not active), show the final code without diff highlight
+    if (!isActive) {
+      return Prism.highlight(newCode, Prism.languages[language], language);
+    }
+
     const changes = diffChars(oldCode, newCode);
     const visibleArray = oldCode.split(''); // Start with old code as an array
     let currentPosition = 0;
@@ -79,7 +84,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
   
     return highlighted.replace(/KEYDIFFMATCHKEY/g, '<span class="diff-added">')
                       .replace(/KEYDIFFMATCHENDKEY/g, '</span>');
-  }, [oldCode, newCode, language, progress]);
+  }, [oldCode, newCode, language, progress, isActive]);
 
   const staticStyles = useMemo(() => {
     if (!isStatic) return {};
