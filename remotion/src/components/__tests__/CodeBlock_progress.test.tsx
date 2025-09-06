@@ -1,6 +1,7 @@
-import {describe, it, expect, vi} from 'vitest';
+import {describe, it, vi} from 'vitest';
 import React from 'react';
 import {render} from '@testing-library/react';
+import CodeBlockAnimation from '../CodeBlockAnimation';
 
 vi.mock('remotion', () => {
   const React = require('react');
@@ -15,7 +16,6 @@ vi.mock('remotion', () => {
   };
 });
 
-import CodeBlockAnimation from '../CodeBlockAnimation';
 
 describe('Code typing progress', () => {
   it('CodeBlock receives progress=1 when frame > duration', () => {

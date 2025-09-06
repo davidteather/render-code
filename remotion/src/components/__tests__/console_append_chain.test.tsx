@@ -1,6 +1,6 @@
 import {describe, it, expect, vi} from 'vitest';
 import React from 'react';
-import {render, screen} from '@testing-library/react';
+import {render} from '@testing-library/react';
 
 vi.mock('remotion', () => {
   const React = require('react');
@@ -29,11 +29,10 @@ describe('console append chain grouping', () => {
       }]
     };
     render(<CodeBlockAnimation markdown={markdown as any} />);
-    // Check that only one top-level grouping container is present for the chain
-    // Using text presence heuristic for a joined transcript
-    expect(document.body.textContent).toContain('pwd');
-    expect(document.body.textContent).toContain('ls -la');
-    expect(document.body.textContent).toContain('cd projects');
+    const text = document.body.textContent || '';
+    expect(text).toContain('pwd');
+    expect(text).toContain('ls -la');
+    expect(text).toContain('cd projects');
   });
 });
 

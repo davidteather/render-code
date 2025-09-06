@@ -122,6 +122,8 @@ export type AnimationConfig = {
   timingMultiplier: number;
   /** Inter-block transition time in seconds */
   transitionSeconds: number;
+  /** Pre-roll frames before typing begins for code blocks. */
+  codePreRollFrames?: number;
   /** If true, disable all inter-block transitions/appears globally. */
   disableTransitions?: boolean;
   /** If true, typing is instant. */
@@ -171,6 +173,7 @@ export const ANIMATION: AnimationConfig = {
   transitionSeconds: 0.67, // Time between blocks; higher adds more pause between steps (~20f@30fps)
   disableTransitions: false,
   instantChanges: false, // If true, typing is instantaneous (debug/demo mode)
+  codePreRollFrames: 0,
   smallCharsFastThreshold: 12, // Typing ≤ this count uses the “small snippet” timing curve (faster)
   minDurationSmallSnippetSeconds: 0.27, // Minimum typing time for short snippets (~8f@30fps)
   smallSnippetSecondsPerChar: 1 / 30, // Typing seconds per char for small snippets (~1f@30fps/char). Higher = slower typing

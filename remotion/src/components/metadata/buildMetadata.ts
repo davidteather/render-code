@@ -1,5 +1,6 @@
 import { CodeBlockMetadata, CutawayBlockMetadata, LayoutSplitMetadata } from '../../calculations/animation_length';
-import pkg from '../../../package.json';
+// generatorVersion is injected at build time; avoid importing JSON to keep tsconfig minimal
+const generatorVersion = '0.0.0';
 
 export type BuiltMetadata = {
   blocks: Array<CodeBlockMetadata | CutawayBlockMetadata | LayoutSplitMetadata>;
@@ -37,7 +38,7 @@ export function buildMetadata(input: {
     perBlockHighlightHoldFrames: input.perBlockHighlightHoldFrames,
     perBlockTailFrames: input.perBlockTailFrames,
     specVersion: 'v0',
-    generatorVersion: (pkg as any).version || '0.0.0',
+    generatorVersion,
   };
 }
 

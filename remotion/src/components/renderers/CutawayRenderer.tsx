@@ -5,35 +5,27 @@ import { VideoPlaceholder } from '../cutaways/VideoPlaceholder';
 import { ConsoleCutaway } from '../cutaways/ConsoleCutaway';
 import { RENDER_FLAGS } from '../../config';
 import { CutawayRendererProps } from '../../types/components';
-
-type ImageProps = { type: 'cutaway-image'; src: string; title?: string; width?: number; height?: number };
-type GifProps = { type: 'cutaway-gif'; src: string; title?: string; width?: number; height?: number };
-type VideoProps = { type: 'cutaway-video'; src: string; title?: string; startSec?: number; endSec?: number; width?: number; height?: number; muted?: boolean };
-type ConsoleProps = {
-  type: 'cutaway-console';
-  content: string; title?: string; durationFrames?: number; prompt?: string; commandLines?: number; commandCps?: number; outputCps?: number; enterDelay?: number; showPrompt?: boolean; cwd?: string; prefix?: string; frameOverride?: number; maxHeightPx?: number; maxWidthPx?: number;
-  historyContent?: string;
-};
+import { CutawayType } from '../../models';
 
 export const CutawayRenderer: React.FC<CutawayRendererProps> = (props) => {
-  if (props.type === 'cutaway-image') {
+  if (props.type === CutawayType.Image) {
     return RENDER_FLAGS.showImageCutaways ? (
       <ImageCutaway src={props.src} title={props.title} width={props.width} height={props.height} isActive={props.isActive ?? true} />
     ) : null;
   }
-  if (props.type === 'cutaway-gif') {
+  if (props.type === CutawayType.Gif) {
     return (
       <GifCutaway src={props.src} title={props.title} width={props.width} height={props.height} isActive={props.isActive ?? true} />
     );
   }
-  if (props.type === 'cutaway-video') {
+  if (props.type === CutawayType.Video) {
     return RENDER_FLAGS.showVideoCutaways ? (
       <VideoCutaway src={props.src} title={props.title} start={props.startSec} end={props.endSec} width={props.width} height={props.height} muted={props.muted} />
     ) : (
       <VideoPlaceholder src={props.src} title={props.title} />
     );
   }
-  if (props.type === 'cutaway-console') {
+  if (props.type === CutawayType.Console) {
     return (
       <ConsoleCutaway
         content={props.content}

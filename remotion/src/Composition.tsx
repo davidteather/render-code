@@ -15,13 +15,11 @@ export const MyComposition: React.FC<MyCompProps> = ({ markdownFile, userSetting
 
   const inputFilePath = staticFile(markdownFile || 'input.md');
 
-  // Fetch and parse markdown data on component mount
   useEffect(() => {
     async function main() {
       try {
         const parsedData = await parseMarkdown(inputFilePath);
         setMarkdownData(parsedData);
-        console.log('Parsed Markdown:', parsedData);
       } catch (err) {
         console.error('Error parsing markdown:', err);
         setParseError(err);
@@ -31,13 +29,11 @@ export const MyComposition: React.FC<MyCompProps> = ({ markdownFile, userSetting
     main();
   }, [inputFilePath]);
 
-  // Fail fast on parse errors so the renderer exits with a non-zero status
   if (parseError) {
     throw parseError instanceof Error ? parseError : new Error(String(parseError));
   }
-  // Return early if markdown data hasn't been loaded yet
   if (!markdownData) {
-    return null; // Loading placeholder
+    return null;
   }
 
   const merged = loadUserSettings(userSettings);

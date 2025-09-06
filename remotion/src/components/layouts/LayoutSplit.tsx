@@ -1,9 +1,9 @@
 import React from 'react';
-import { AbsoluteFill, Sequence, spring, useVideoConfig } from 'remotion';
+import { AbsoluteFill, Sequence, spring } from 'remotion';
 import { CodeBlockRenderer } from '../renderers/CodeBlockRenderer';
 import { CutawayRenderer } from '../renderers/CutawayRenderer';
 import { LayoutSplitMetadata } from '../../calculations/animation_length';
-import { RENDER_FLAGS } from '../../config';
+import { ParsedBlock, TypedCodeBlock, CutawayType } from '../../models';
 
 type Props = {
   block: LayoutSplitMetadata;
@@ -22,7 +22,7 @@ export const LayoutSplit: React.FC<Props> = ({
   maxLineLengthGlobal,
   maxLineCountGlobal,
 }) => {
-  const panes: any[] = Array.isArray(block.panes) ? block.panes : [];
+  const panes = Array.isArray(block.panes) ? block.panes : [];
   const dir: 'row' | 'column' = (block.direction === 'column' ? 'column' : 'row');
   const gapPx = typeof block.gap === 'number' ? block.gap : 24;
   const sizes: number[] | undefined = (Array.isArray(block.sizes) && block.sizes.length === panes.length) ? block.sizes : undefined;
@@ -44,33 +44,34 @@ export const LayoutSplit: React.FC<Props> = ({
             : { width: '100%', flex: `${weight} 1 0%`, minHeight: 0 };
           return (
             <div data-testid={`pane-${pIdx}`} key={`pane-${pIdx}`} style={{ position: 'relative', overflow: 'hidden', ...widthStyle }}>
-              {(pane.blocks as any[]).map((inner: any, ii: number) => {
-                const s = inner.start ?? 0;
-                const next = (pane.blocks as any[])[ii + 1];
+              {pane.blocks.map((inner, ii: number) => {
+                const s = (inner as { start?: number }).start ?? 0;
+                const next = pane.blocks[ii + 1] as (ParsedBlock & { start?: number; duration?: number }) | undefined;
                 const layoutLocalDuration = sequenceDuration;
-                const seqDur = Math.max(1, (next ? (next.start ?? 0) - s : (layoutLocalDuration - s)));
+                const seqDur = Math.max(1, (next ? ((next as any).start ?? 0) - s : (layoutLocalDuration - s)));
                 const paneLocalFrom = s;
                 return (
                   <Sequence key={`p${pIdx}-ib${ii}`} from={paneLocalFrom} durationInFrames={seqDur}>
                     {(() => {
                       if (inner.type === 'code') {
                         let prevCode = '';
-                        const prev = (pane.blocks as any[])[ii - 1];
-                        if (prev && prev.type === 'code' && prev.title === inner.title && inner.startFromBlank !== true) {
+                        const prev = pane.blocks[ii - 1] as (TypedCodeBlock & { duration?: number }) | undefined;
+                        if (prev && prev.type === 'code' && prev.title === (inner as TypedCodeBlock).title && (inner as TypedCodeBlock).startFromBlank !== true) {
                           prevCode = prev.content;
                         }
                         const paneLocalFrame = Math.max(0, localFrame - s);
-                        const rawInner = spring({ frame: Math.min(paneLocalFrame, inner.duration ?? 0), fps, durationInFrames: inner.duration ?? 0, config: { damping: 20, stiffness: 200, mass: 0.5 } });
+                        const durationInFrames = (inner as any).duration ?? 0;
+                        const rawInner = spring({ frame: Math.min(paneLocalFrame, durationInFrames), fps, durationInFrames, config: { damping: 20, stiffness: 200, mass: 0.5 } });
                         const progInner = Math.max(0, Math.min(1, rawInner));
-                        const activeInnerFlag = paneLocalFrame < (inner.duration ?? 0);
+                        const activeInnerFlag = paneLocalFrame < durationInFrames;
                         return (
                           <CodeBlockRenderer
                             oldCode={prevCode}
-                            newCode={inner.content}
-                            language={inner.language}
-                            progress={inner.typeFillin === false ? 1 : progInner}
-                            isActive={inner.highlight === false ? false : activeInnerFlag}
-                            fileName={inner.title}
+                            newCode={(inner as TypedCodeBlock).content}
+                            language={(inner as TypedCodeBlock).language}
+                            progress={(inner as TypedCodeBlock).typeFillin === false ? 1 : progInner}
+                            isActive={(inner as TypedCodeBlock).highlight === false ? false : activeInnerFlag}
+                            fileName={(inner as TypedCodeBlock).title}
                             maxLineLength={maxLineLengthGlobal}
                             maxLineCount={maxLineCountGlobal}
                           />
@@ -78,10 +79,10 @@ export const LayoutSplit: React.FC<Props> = ({
                       }
                       return (
                         <CutawayRenderer
-                          {...(inner as any)}
+                          {...(inner as unknown as any)}
                           isActive={true}
-                          {...(inner.type === 'cutaway-console' ? {
-                            durationFrames: inner.duration,
+                          {...(inner.type === CutawayType.Console ? {
+                            durationFrames: (inner as any).duration,
                             frameOverride: Math.max(0, localFrame - s),
                           } : {})}
                         />

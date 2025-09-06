@@ -1,5 +1,5 @@
 import matter from 'gray-matter';
-import { MarkdownFrontmatter, ParsedMarkdown, ParsedBlock, LayoutPane } from '../models';
+import { MarkdownFrontmatter, ParsedMarkdown, ParsedBlock, LayoutPane, CutawayType } from '../models';
 
 /**
  * Fetches the markdown file from the provided URL, parses it, and extracts frontmatter and code blocks.
@@ -32,7 +32,6 @@ export function parseMarkdownString(markdownContent: string): ParsedMarkdown {
   const { sections, warnings } = extractSectionsFromContent(content);
   const skip = typeof process !== 'undefined' && process.env && (process.env.SKIP_WARNINGS === '1');
   if (warnings.length && !skip) {
-    // Fail-fast: escalate warnings to errors so the render stops immediately
     throw new Error(`Markdown parser warnings (fail-fast): ${warnings.join(' | ')}`);
   }
 
@@ -215,16 +214,16 @@ function extractSectionsFromContent(content: string): { sections: { title: strin
               const titleInner = attrsInner.title as string | undefined;
               const durationSecondsInner = typeof attrsInner.duration === 'number' ? attrsInner.duration : (attrsInner.durationSeconds as number | undefined);
               if (typeInner === 'image') {
-                innerBlocks.push({ type: 'cutaway-image', src: String(attrsInner.src || ''), width: typeof attrsInner.width === 'number' ? attrsInner.width : undefined, height: typeof attrsInner.height === 'number' ? attrsInner.height : undefined, alt: attrsInner.alt as string | undefined, title: titleInner, durationSeconds: durationSecondsInner } as any);
+                innerBlocks.push({ type: CutawayType.Image, src: String(attrsInner.src || ''), width: typeof attrsInner.width === 'number' ? attrsInner.width : undefined, height: typeof attrsInner.height === 'number' ? attrsInner.height : undefined, alt: attrsInner.alt as string | undefined, title: titleInner, durationSeconds: durationSecondsInner } as any);
               } else if (typeInner === 'video') {
-                innerBlocks.push({ type: 'cutaway-video', src: String(attrsInner.src || ''), start: typeof attrsInner.start === 'number' ? attrsInner.start : undefined, end: typeof attrsInner.end === 'number' ? attrsInner.end : undefined, width: typeof attrsInner.width === 'number' ? attrsInner.width : undefined, height: typeof attrsInner.height === 'number' ? attrsInner.height : undefined, muted: attrsInner.muted === true, playToEnd: attrsInner.playToEnd === true, title: titleInner, durationSeconds: durationSecondsInner, noTransition: attrsInner.noTransition === true ? true : undefined } as any);
+                innerBlocks.push({ type: CutawayType.Video, src: String(attrsInner.src || ''), start: typeof attrsInner.start === 'number' ? attrsInner.start : undefined, end: typeof attrsInner.end === 'number' ? attrsInner.end : undefined, width: typeof attrsInner.width === 'number' ? attrsInner.width : undefined, height: typeof attrsInner.height === 'number' ? attrsInner.height : undefined, muted: attrsInner.muted === true, playToEnd: attrsInner.playToEnd === true, title: titleInner, durationSeconds: durationSecondsInner, noTransition: attrsInner.noTransition === true ? true : undefined } as any);
               } else if (typeInner === 'gif') {
-                innerBlocks.push({ type: 'cutaway-gif', src: String(attrsInner.src || ''), width: typeof attrsInner.width === 'number' ? attrsInner.width : undefined, height: typeof attrsInner.height === 'number' ? attrsInner.height : undefined, alt: attrsInner.alt as string | undefined, title: titleInner, durationSeconds: durationSecondsInner } as any);
+                innerBlocks.push({ type: CutawayType.Gif, src: String(attrsInner.src || ''), width: typeof attrsInner.width === 'number' ? attrsInner.width : undefined, height: typeof attrsInner.height === 'number' ? attrsInner.height : undefined, alt: attrsInner.alt as string | undefined, title: titleInner, durationSeconds: durationSecondsInner } as any);
               } else {
                 const buf: string[] = [];
                 j++;
                 while (j < lines.length && !isDirectiveClose(lines[j])) { buf.push(lines[j]); j++; }
-                innerBlocks.push({ type: 'cutaway-console', content: buf.join('\n'), title: titleInner, durationSeconds: durationSecondsInner, prompt: typeof attrsInner.prompt === 'string' ? attrsInner.prompt : undefined, commandLines: typeof attrsInner.commandLines === 'number' ? attrsInner.commandLines : undefined, commandCps: typeof attrsInner.commandCps === 'number' ? attrsInner.commandCps : undefined, outputCps: typeof attrsInner.outputCps === 'number' ? attrsInner.outputCps : undefined, enterDelay: typeof attrsInner.enterDelay === 'number' ? attrsInner.enterDelay : undefined, showPrompt: attrsInner.showPrompt === false ? false : (attrsInner.showPrompt === true ? true : undefined), maxHeightPx: typeof attrsInner.maxHeightPx === 'number' ? attrsInner.maxHeightPx : undefined, append: attrsInner.append === true ? true : undefined, cwd: typeof attrsInner.cwd === 'string' ? attrsInner.cwd : undefined, prefix: typeof attrsInner.prefix === 'string' ? attrsInner.prefix : undefined, noTransition: attrsInner.noTransition === true ? true : undefined } as any);
+                innerBlocks.push({ type: CutawayType.Console, content: buf.join('\n'), title: titleInner, durationSeconds: durationSecondsInner, prompt: typeof attrsInner.prompt === 'string' ? attrsInner.prompt : undefined, commandLines: typeof attrsInner.commandLines === 'number' ? attrsInner.commandLines : undefined, commandCps: typeof attrsInner.commandCps === 'number' ? attrsInner.commandCps : undefined, outputCps: typeof attrsInner.outputCps === 'number' ? attrsInner.outputCps : undefined, enterDelay: typeof attrsInner.enterDelay === 'number' ? attrsInner.enterDelay : undefined, showPrompt: attrsInner.showPrompt === false ? false : (attrsInner.showPrompt === true ? true : undefined), maxHeightPx: typeof attrsInner.maxHeightPx === 'number' ? attrsInner.maxHeightPx : undefined, append: attrsInner.append === true ? true : undefined, cwd: typeof attrsInner.cwd === 'string' ? attrsInner.cwd : undefined, prefix: typeof attrsInner.prefix === 'string' ? attrsInner.prefix : undefined, noTransition: attrsInner.noTransition === true ? true : undefined } as any);
               }
             }
             j++;
@@ -268,7 +267,7 @@ function extractSectionsFromContent(content: string): { sections: { title: strin
 
       if (type === 'image') {
         currentSection!.blocks.push({
-          type: 'cutaway-image',
+          type: CutawayType.Image,
           src: String(attrs.src || ''),
           width: typeof attrs.width === 'number' ? attrs.width : undefined,
           height: typeof attrs.height === 'number' ? attrs.height : undefined,
@@ -281,7 +280,7 @@ function extractSectionsFromContent(content: string): { sections: { title: strin
 
       if (type === 'gif') {
         currentSection!.blocks.push({
-          type: 'cutaway-gif',
+          type: CutawayType.Gif,
           src: String(attrs.src || ''),
           width: typeof attrs.width === 'number' ? attrs.width : undefined,
           height: typeof attrs.height === 'number' ? attrs.height : undefined,
@@ -294,7 +293,7 @@ function extractSectionsFromContent(content: string): { sections: { title: strin
 
       if (type === 'video') {
         currentSection!.blocks.push({
-          type: 'cutaway-video',
+          type: CutawayType.Video,
           src: String(attrs.src || ''),
           start: typeof attrs.start === 'number' ? attrs.start : undefined,
           end: typeof attrs.end === 'number' ? attrs.end : undefined,
@@ -318,7 +317,7 @@ function extractSectionsFromContent(content: string): { sections: { title: strin
       }
       if (j >= lines.length) warnings.push('Unclosed :::cutaway block');
       currentSection!.blocks.push({
-        type: 'cutaway-console',
+        type: CutawayType.Console,
         content: buf.join('\n'),
         title,
         durationSeconds,

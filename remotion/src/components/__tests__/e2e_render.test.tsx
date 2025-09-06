@@ -30,7 +30,6 @@ describe('E2E render: parser -> blocks -> remotion', () => {
         fps={60}
         frameToDisplay={60}
         inputProps={{}}
-        numberOfSharedAudioTags={0}
         style={{ opacity: 1 }}
       />
     );

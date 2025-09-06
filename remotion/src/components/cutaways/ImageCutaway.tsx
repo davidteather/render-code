@@ -19,7 +19,7 @@ export const ImageCutaway: React.FC<ImageCutawayProps> = ({ src, title, width, h
 	const resolved = staticFile(src.replace(/^\//, ''));
 	return (
 		<AbsoluteFill style={{ backgroundColor: THEME.stageBackground, justifyContent: 'center', alignItems: 'center' }}>
-			<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+			<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, minHeight: '100%' }}>
 				{isActive && title && (
 					<div style={{ color: '#bbb', fontSize: '1.2rem' }}>{title}</div>
 				)}

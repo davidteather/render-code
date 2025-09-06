@@ -1,4 +1,5 @@
-import { LayoutSplitMetadata } from '../calculations/animation_length';
+import { LayoutSplitMetadata, CodeBlockMetadata } from '../calculations/animation_length';
+import { CutawayType } from '../models';
 
 export type CodeBlockRendererProps = {
   oldCode: string;
@@ -11,10 +12,10 @@ export type CodeBlockRendererProps = {
   maxLineCount: number;
 };
 
-export type CutawayImageProps = { type: 'cutaway-image'; src: string; title?: string; width?: number; height?: number };
-export type CutawayGifProps = { type: 'cutaway-gif'; src: string; title?: string; width?: number; height?: number };
-export type CutawayVideoProps = { type: 'cutaway-video'; src: string; title?: string; startSec?: number; endSec?: number; width?: number; height?: number; muted?: boolean };
-export type CutawayConsoleProps = { type: 'cutaway-console'; content: string; title?: string; durationFrames?: number; prompt?: string; commandLines?: number; commandCps?: number; outputCps?: number; enterDelay?: number; showPrompt?: boolean; cwd?: string; prefix?: string; frameOverride?: number; maxHeightPx?: number; maxWidthPx?: number; historyContent?: string; segments?: Array<{ command: string; output?: string; enterDelay?: number; cwd?: string; prefix?: string; prompt?: string }>; };
+export type CutawayImageProps = { type: typeof CutawayType.Image; src: string; title?: string; width?: number; height?: number };
+export type CutawayGifProps = { type: typeof CutawayType.Gif; src: string; title?: string; width?: number; height?: number };
+export type CutawayVideoProps = { type: typeof CutawayType.Video; src: string; title?: string; startSec?: number; endSec?: number; width?: number; height?: number; muted?: boolean };
+export type CutawayConsoleProps = { type: typeof CutawayType.Console; content: string; title?: string; durationFrames?: number; prompt?: string; commandLines?: number; commandCps?: number; outputCps?: number; enterDelay?: number; showPrompt?: boolean; cwd?: string; prefix?: string; frameOverride?: number; maxHeightPx?: number; maxWidthPx?: number; historyContent?: string; segments?: Array<{ command: string; output?: string; enterDelay?: number; cwd?: string; prefix?: string; prompt?: string }>; };
 
 export type CutawayRendererProps = (CutawayImageProps | CutawayGifProps | CutawayVideoProps | CutawayConsoleProps) & { isActive?: boolean };
 
@@ -28,7 +29,9 @@ export type LayoutSplitProps = {
 };
 
 export type MetadataPayload = {
-  blocks: any[];
+  blocks: Array<CodeBlockMetadata | LayoutSplitMetadata | (
+    { type: typeof CutawayType.Image | typeof CutawayType.Gif | typeof CutawayType.Video | typeof CutawayType.Console; start: number; duration: number; addedChars: 0 }
+  )>;
   totalFrames: number;
   maxLineLengthGlobal: number;
   maxLineCountGlobal: number;

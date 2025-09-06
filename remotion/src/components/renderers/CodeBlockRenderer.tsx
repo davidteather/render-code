@@ -5,7 +5,7 @@ import { CodeBlockRendererProps } from '../../types/components';
 export const CodeBlockRenderer: React.FC<CodeBlockRendererProps> = ({
   oldCode,
   newCode,
-  language,
+  language = 'plaintext',
   progress,
   isActive,
   fileName,

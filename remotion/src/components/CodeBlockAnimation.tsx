@@ -12,6 +12,7 @@ import { MetadataArtifact } from './MetadataArtifact';
 import { buildMetadata } from './metadata/buildMetadata';
 import type { MetadataPayload } from '../types/components';
 import { buildConsoleHistory } from './helpers/consoleHistory';
+import { CutawayType } from '../models';
 
 // Holds are computed in calculations/animation_phases.ts
 
@@ -138,12 +139,12 @@ const CodeBlockAnimation: React.FC<CodeBlockAnimationProps> = ({ markdown, theme
         }
 
         // Cutaways render without typing/highlight logic
-        // Special handling: group consecutive appended consoles with same title into one sequence
-        if ((block as any).type === 'cutaway-console' && (block as any).append === true) {
+        // Group consecutive appended consoles with same title into one sequence
+        if ((block as any).type === CutawayType.Console && (block as any).append === true) {
           let end = index;
           for (let j = index + 1; j < blocks.length; j++) {
             const nb = blocks[j] as any;
-            if (nb.type === 'cutaway-console' && nb.append === true && nb.title === (block as any).title) {
+            if (nb.type === CutawayType.Console && nb.append === true && nb.title === (block as any).title) {
               end = j;
               continue;
             }
@@ -178,8 +179,8 @@ const CodeBlockAnimation: React.FC<CodeBlockAnimationProps> = ({ markdown, theme
           <Sequence key={index} from={block.start} durationInFrames={sequenceDuration}>
             <CutawayRenderer
               {...(block as any)}
-              isActive={block.type === 'cutaway-video' ? (localFrame < activeDuration) : isActive}
-              {...(block.type === 'cutaway-console' ? {
+              isActive={block.type === CutawayType.Video ? (localFrame < activeDuration) : isActive}
+              {...(block.type === CutawayType.Console ? {
                 durationFrames: activeDuration,
                 frameOverride: localFrame,
                 historyContent: ((block as any).append ? buildConsoleHistory(blocks as any[], index, (block as any).title) : undefined),

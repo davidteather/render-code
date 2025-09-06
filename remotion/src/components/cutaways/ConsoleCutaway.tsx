@@ -6,7 +6,6 @@ import { buildPrompt } from '../helpers/consoleHistory';
 export type ConsoleCutawayProps = {
   content: string;
   title?: string;
-  /** Duration of the active sequence portion in frames (typing spans this). */
   durationFrames?: number;
   prompt?: string;
   cwd?: string;
@@ -16,19 +15,14 @@ export type ConsoleCutawayProps = {
   outputCps?: number;
   enterDelay?: number;
   showPrompt?: boolean;
-  /** If provided, use this as the local frame (relative to sequence start). */
   frameOverride?: number;
-  /** Optional maximum height in pixels to allow scrolling for long outputs. */
   maxHeightPx?: number;
-  /** Optional maximum width override in pixels for the console container. */
   maxWidthPx?: number;
-  /** Optional prior history to show above the current command/output. */
   historyContent?: string;
-  /** Optional multiple segments for multi-command in one block. */
   segments?: Array<{ command: string; output?: string; enterDelay?: number }>;
 };
 
-export const ConsoleCutaway: React.FC<ConsoleCutawayProps> = ({ content, title, durationFrames, prompt, cwd, prefix, commandLines, commandCps, outputCps, enterDelay, showPrompt, frameOverride, maxHeightPx, maxWidthPx, historyContent, segments }) => {
+export const ConsoleCutaway: React.FC<ConsoleCutawayProps> = ({ content, title, durationFrames: _durationFrames, prompt, cwd, prefix, commandLines, commandCps, outputCps, enterDelay, showPrompt, frameOverride, maxHeightPx, maxWidthPx, historyContent, segments }) => {
   const globalFrame = useCurrentFrame();
   const frame = Math.max(0, (typeof frameOverride === 'number' ? frameOverride : globalFrame));
   const { fps } = useVideoConfig();
@@ -36,7 +30,6 @@ export const ConsoleCutaway: React.FC<ConsoleCutawayProps> = ({ content, title, 
   const scrollRef = useRef<HTMLDivElement>(null);
   const appended = Boolean(historyContent && historyContent.length > 0);
 
-  // If segments provided, simulate sequential commands; else derive from content
   const lines = content.split('\n');
   const numCmdLines = Math.max(1, commandLines ?? 1);
   const singleCommand = lines.slice(0, numCmdLines).join('\n');
@@ -53,18 +46,12 @@ export const ConsoleCutaway: React.FC<ConsoleCutawayProps> = ({ content, title, 
     return segments.map((s) => ({ command: s.command, output: s.output ?? '', enter: typeof s.enterDelay === 'number' ? s.enterDelay : enterDelaySec }));
   })();
 
-  // Compute cumulative frames for each segment
   const segFrames = timeline.map((seg) => {
     const cmdFrames = Math.max(1, Math.ceil((seg.command.length / Math.max(1, cmdCharsPerSec)) * fps));
     const enterFrames = Math.max(0, Math.ceil(seg.enter * fps));
     const outFrames = Math.ceil(((seg.output?.length ?? 0) / Math.max(1, outCharsPerSec)) * fps);
     return { cmdFrames, enterFrames, outFrames, total: cmdFrames + enterFrames + outFrames };
   });
-  const segOffsets = segFrames.reduce<number[]>((acc, cur, idx) => {
-    const prev = acc[idx - 1] ?? 0;
-    acc.push(prev + cur.total);
-    return acc;
-  }, []);
 
   let visibleCommand = '';
   let visibleOutput = '';
@@ -156,7 +143,7 @@ export const ConsoleCutaway: React.FC<ConsoleCutawayProps> = ({ content, title, 
 })}
 {(showPrompt ?? true) ? (
   <>
-    <span style={{color:'#9cdcfe'}}>{prefix ? prefix : ((cwd ? `${cwd} ` : '') + (prompt ?? '$'))}</span>{' '}
+    <span style={{color:'#9cdcfe'}}>{buildPrompt(cwd, prompt, prefix)}</span>{' '}
   </>
 ) : null}{visibleCommand}
 {visibleOutput && ('\n' + visibleOutput)}

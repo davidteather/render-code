@@ -9,6 +9,14 @@ export interface CodeBlock {
 
 export type BlockType = 'code' | 'cutaway-image' | 'cutaway-video' | 'cutaway-console' | 'cutaway-gif' | 'layout-split';
 
+export const CutawayType = {
+  Image: 'cutaway-image',
+  Gif: 'cutaway-gif',
+  Video: 'cutaway-video',
+  Console: 'cutaway-console',
+} as const;
+export type CutawayTypeValue = typeof CutawayType[keyof typeof CutawayType];
+
 export interface BaseBlock {
   type: BlockType;
 }
@@ -37,7 +45,7 @@ export interface CutawayBase extends BaseBlock {
 }
 
 export interface CutawayImageBlock extends CutawayBase {
-  type: 'cutaway-image';
+  type: typeof CutawayType.Image;
   src: string;
   width?: number;
   height?: number;
@@ -46,7 +54,7 @@ export interface CutawayImageBlock extends CutawayBase {
 }
 
 export interface CutawayGifBlock extends CutawayBase {
-  type: 'cutaway-gif';
+  type: typeof CutawayType.Gif;
   src: string;
   width?: number;
   height?: number;
@@ -55,7 +63,7 @@ export interface CutawayGifBlock extends CutawayBase {
 }
 
 export interface CutawayVideoBlock extends CutawayBase {
-  type: 'cutaway-video';
+  type: typeof CutawayType.Video;
   src: string;
   /** Optional in/out (seconds) */
   start?: number;
@@ -69,7 +77,7 @@ export interface CutawayVideoBlock extends CutawayBase {
 }
 
 export interface CutawayConsoleBlock extends CutawayBase {
-  type: 'cutaway-console';
+  type: typeof CutawayType.Console;
   /** Raw console text (could be structured later) */
   content: string;
   /** Optional shell prompt prefix (e.g., "$" or "(venv) ➜ proj %"). */
