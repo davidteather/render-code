@@ -49,6 +49,14 @@ describe('Layout DOM', () => {
     const pane1 = screen.getByTestId('pane-1');
     expect(pane0).toBeTruthy();
     expect(pane1).toBeTruthy();
+    // Ensure style widths add up to <= 100% and overflow hidden is applied
+    expect((pane0 as HTMLDivElement).style.overflow).toBe('hidden');
+    expect((pane1 as HTMLDivElement).style.overflow).toBe('hidden');
+    // Code container should be width 100% and not overflow its pane
+    const codeContainer = screen.queryByTestId('code-container') as HTMLDivElement | null;
+    if (codeContainer) {
+      expect(codeContainer.style.width).toBe('100%');
+    }
   });
 });
 

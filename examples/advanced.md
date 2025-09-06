@@ -278,7 +278,7 @@ PY
 
 ## Split Layout Demos
 
-:::layout direction=row gap=24 sizes="60,40"
+:::layout direction=row gap=24 sizes="40,60"
 :::pane title="Current Site (image)"
 :::cutaway type=image src="/assets/prem2.png" title="Website before"
 :::

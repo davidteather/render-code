@@ -122,15 +122,27 @@ const CodeBlockAnimation: React.FC<{ markdown: any }> = ({ markdown }) => {
             <Sequence key={index} from={block.start} durationInFrames={sequenceDuration}>
               <AbsoluteFill data-testid="layout-split" style={{ display: 'flex', flexDirection: dir, gap: `${gapPx}px`, padding: 24 }}>
                 {panes.map((pane, pIdx) => {
-                  const basis = sizes ? sizes[pIdx] : (100 / Math.max(1, panes.length));
-                  const widthStyle = dir === 'row' ? { flex: `0 0 ${basis}%`, width: `${basis}%`, height: '100%' } : { width: '100%', height: `${basis}%` };
+                  // Determine flex-grow weights instead of fixed widths to account for gap/padding
+                  let weight: number;
+                  if (sizes) {
+                    const maxVal = Math.max(...sizes);
+                    const allIntUnder12 = maxVal <= 12;
+                    weight = allIntUnder12 ? Math.max(1, Math.min(12, Math.round(sizes[pIdx]))) : Math.max(1, sizes[pIdx]);
+                  } else {
+                    weight = 1;
+                  }
+                  const widthStyle = dir === 'row'
+                    ? { flex: `${weight} 1 0%`, height: '100%', minWidth: 0 }
+                    : { width: '100%', flex: `${weight} 1 0%`, minHeight: 0 };
                   return (
                     <div data-testid={`pane-${pIdx}`} key={`pane-${pIdx}`} style={{ position: 'relative', overflow: 'hidden', ...widthStyle }}>
                       {(pane.blocks as any[]).map((inner: any, ii: number) => {
                         const s = inner.start ?? 0;
                         const d = inner.duration ?? 1;
                         const next = (pane.blocks as any[])[ii + 1];
-                        const seqDur = Math.max(1, (next ? (next.start ?? 0) - s : d));
+                        // Extend last inner block to fill the whole layout duration so both panes stay visible
+                        const layoutLocalDuration = sequenceDuration;
+                        const seqDur = Math.max(1, (next ? (next.start ?? 0) - s : (layoutLocalDuration - s)));
                         // Child Sequences are relative to the parent layout Sequence, so use 's' only
                         const paneLocalFrom = s;
                         return (

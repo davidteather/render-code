@@ -108,9 +108,9 @@ export const ConsoleCutaway: React.FC<ConsoleCutawayProps> = ({ content, title, 
         backgroundColor: THEME.codeBackground,
         borderRadius: `${THEME.codeBorderRadiusPx + 4}px`,
         boxShadow: appended ? 'none' : '0 12px 40px rgba(0,0,0,0.35)',
-        width: '80%',
-        maxWidth: '100ch',
-        overflow: maxHeightPx ? 'auto' : 'hidden',
+        width: '92%',
+        maxWidth: '100%',
+        overflow: 'hidden',
         maxHeight: maxHeightPx ? `${maxHeightPx}px` : undefined,
         transform: appended ? 'none' : `scale(${0.96 + appear * 0.04})`,
         opacity: appended ? 1 : appear
@@ -124,7 +124,7 @@ export const ConsoleCutaway: React.FC<ConsoleCutawayProps> = ({ content, title, 
             fontSize: '0.9em',
           }}>{title}</div>
         )}
-        <pre style={{ margin: 0, padding: `${LAYOUT.codePaddingPx}px`, color: THEME.codeTextColor, whiteSpace: 'pre-wrap', fontSize: '1.9rem', lineHeight: 1.45 }}>
+        <pre style={{ margin: 0, padding: `${LAYOUT.codePaddingPx}px`, color: THEME.codeTextColor, whiteSpace: 'pre-wrap', fontSize: '1.9rem', lineHeight: 1.45, boxSizing: 'border-box', width: '100%' }}>
 {(historyContent ? historyContent.split('\n') : []).map((ln, i) => {
   const idxDollar = ln.indexOf(' $ ');
   const idxPercent = ln.indexOf(' % ');

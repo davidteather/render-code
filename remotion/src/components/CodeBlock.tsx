@@ -111,7 +111,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
     const lineHeightPx = numericFontSizePx * lineHeight;
 
     return {
-      width: containerWidth,
+      // Allow container to shrink to fit its pane while capping at computed width
       maxWidth: containerWidth,
       minHeight: `${((maxLineCount || 1) * lineHeightPx + verticalPadding + fileNameHeight) / 16}rem`
     };
@@ -124,15 +124,15 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
     maxWidth: isMobile
       ? LAYOUT.codeMaxWidthMobile
       : (is4k ? LAYOUT.codeMaxWidthDesktop4k : LAYOUT.codeMaxWidthDesktop),
-    ...(isStatic && { 
+    ...(isStatic && {
       overflow: 'hidden auto',
-      minWidth: staticStyles.width 
+      width: '100%'
     })
   };
 
   return (
     <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center' }}>
-      <div style={{
+      <div data-testid="code-container" style={{
         fontFamily: THEME.codeFontFamily,
         backgroundColor: THEME.codeBackground,
         borderRadius: `${THEME.codeBorderRadiusPx}px`,
@@ -156,6 +156,8 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
           margin: 0,
           padding: `${LAYOUT.codePaddingPx}px`,
           overflow: 'hidden',
+          boxSizing: 'border-box',
+          width: '100%',
         }}>
           <code
             dangerouslySetInnerHTML={{ __html: highlightedCode }}
@@ -163,6 +165,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
               color: THEME.codeTextColor,
               whiteSpace: 'pre-wrap',
               display: 'block',
+              wordBreak: 'break-word',
             }}
           />
         </pre>
