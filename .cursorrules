@@ -72,6 +72,8 @@ Quick commands
 - Setup: `python main.py setup`
 - Render example: `python main.py render examples/basic.md`
 - Export (legacy Premiere): `python main.py export examples/basic.md`
+- Render advanced example: `python main.py render examples/advanced.md --preview`
+Note: never use `--skip-warnings` flag, even in testing. This will help you catch warnings and errors early.
 
 Markdown authoring conventions
 - Multi-file code fences: prefer `lang:path/to/file.ext`. Also allow attributes: `lang:{title="file.ext", path="path/to/file.ext"}` for future-proofing.

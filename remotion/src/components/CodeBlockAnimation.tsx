@@ -120,92 +120,85 @@ const CodeBlockAnimation: React.FC<{ markdown: any }> = ({ markdown }) => {
           const sizes: number[] | undefined = (Array.isArray(block.sizes) && block.sizes.length === panes.length) ? block.sizes : undefined;
           return (
             <Sequence key={index} from={block.start} durationInFrames={sequenceDuration}>
-              <AbsoluteFill style={{ display: 'flex', flexDirection: dir, gap: `${gapPx}px`, padding: 24 }}>
+              <AbsoluteFill data-testid="layout-split" style={{ display: 'flex', flexDirection: dir, gap: `${gapPx}px`, padding: 24 }}>
                 {panes.map((pane, pIdx) => {
                   const basis = sizes ? sizes[pIdx] : (100 / Math.max(1, panes.length));
                   const widthStyle = dir === 'row' ? { flex: `0 0 ${basis}%`, width: `${basis}%`, height: '100%' } : { width: '100%', height: `${basis}%` };
-                  const innerBlocks = pane.blocks as any[];
-                  // Determine active inner block by localFrame relative to layout start
-                  const activeInner = (() => {
-                    if (!innerBlocks || innerBlocks.length === 0) return null;
-                    for (let ii = 0; ii < innerBlocks.length; ii++) {
-                      const ib = innerBlocks[ii];
-                      const s = ib.start ?? 0;
-                      const d = ib.duration ?? 0;
-                      const nextIb = innerBlocks[ii + 1];
-                      const seqDur = Math.max(1, (nextIb ? (nextIb.start ?? 0) - s : d));
-                      if (localFrame >= s && localFrame < s + seqDur) return ib;
-                    }
-                    // If before the first block starts, show the first; if after the last, show the last
-                    if (localFrame < (innerBlocks[0].start ?? 0)) return innerBlocks[0];
-                    return innerBlocks[innerBlocks.length - 1];
-                  })();
-                  const inner = activeInner;
                   return (
-                    <div key={`pane-${pIdx}`} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative', overflow: 'hidden', ...widthStyle }}>
-                      {!inner ? null : (() => {
-                        const innerLocal = Math.max(0, localFrame - (inner.start ?? 0));
-                        if (inner.type === 'code') {
-                          const idxInner = innerBlocks.indexOf(inner);
-                          let prevCodePane = '';
-                          if (idxInner > 0) {
-                            const prevInner = innerBlocks[idxInner - 1];
-                            if (prevInner.type === 'code' && prevInner.title === inner.title && inner.startFromBlank !== true) {
-                              prevCodePane = prevInner.content;
-                            }
-                          }
-                          const rawInner = spring({ frame: Math.min(innerLocal, inner.duration ?? 0), fps, durationInFrames: inner.duration ?? 0, config: { damping: 20, stiffness: 200, mass: 0.5 } });
-                          const progInner = Math.max(0, Math.min(1, rawInner));
-                          const activeInnerFlag = innerLocal < (inner.duration ?? 0);
-                          return (
-                            <CodeBlock
-                              oldCode={prevCodePane}
-                              newCode={inner.content}
-                              language={inner.language}
-                              progress={inner.typeFillin === false ? 1 : progInner}
-                              isActive={inner.highlight === false ? false : activeInnerFlag}
-                              fileName={inner.title}
-                              isStatic={true}
-                              maxLineLength={maxLineLengthGlobal}
-                              maxLineCount={maxLineCountGlobal}
-                            />
-                          );
-                        }
-                        if (inner.type === 'cutaway-image' && RENDER_FLAGS.showImageCutaways) {
-                          return (<ImageCutaway src={inner.src} title={inner.title} width={inner.width} height={inner.height} />);
-                        }
-                        if (inner.type === 'cutaway-gif') {
-                          return (<GifCutaway src={inner.src} title={inner.title} width={inner.width} height={inner.height} />);
-                        }
-                        if (inner.type === 'cutaway-video') {
-                          const active = innerLocal < (inner.duration ?? 0);
-                          return active && RENDER_FLAGS.showVideoCutaways ? (
-                            <VideoCutaway src={inner.src} title={inner.title} start={inner.startSec} end={inner.endSec} width={inner.width} height={inner.height} muted={inner.muted} />
-                          ) : (
-                            <VideoPlaceholder src={inner.src} title={inner.title} />
-                          );
-                        }
-                        if (inner.type === 'cutaway-console' && RENDER_FLAGS.showConsoleCutaways) {
-                          return (
-                            <ConsoleCutaway
-                              content={inner.content}
-                              title={inner.title}
-                              durationFrames={inner.duration}
-                              prompt={inner.prompt}
-                              commandLines={inner.commandLines}
-                              commandCps={inner.commandCps}
-                              outputCps={inner.outputCps}
-                              enterDelay={inner.enterDelay}
-                              showPrompt={inner.showPrompt}
-                              cwd={inner.cwd}
-                              prefix={inner.prefix}
-                              frameOverride={innerLocal}
-                              maxHeightPx={inner.maxHeightPx}
-                            />
-                          );
-                        }
-                        return null;
-                      })()}
+                    <div data-testid={`pane-${pIdx}`} key={`pane-${pIdx}`} style={{ position: 'relative', overflow: 'hidden', ...widthStyle }}>
+                      {(pane.blocks as any[]).map((inner: any, ii: number) => {
+                        const s = inner.start ?? 0;
+                        const d = inner.duration ?? 1;
+                        const next = (pane.blocks as any[])[ii + 1];
+                        const seqDur = Math.max(1, (next ? (next.start ?? 0) - s : d));
+                        // Child Sequences are relative to the parent layout Sequence, so use 's' only
+                        const paneLocalFrom = s;
+                        return (
+                          <Sequence key={`p${pIdx}-ib${ii}`} from={paneLocalFrom} durationInFrames={seqDur}>
+                            {(() => {
+                              if (inner.type === 'code') {
+                                // prev code within pane
+                                let prevCode = '';
+                                const prev = (pane.blocks as any[])[ii - 1];
+                                if (prev && prev.type === 'code' && prev.title === inner.title && inner.startFromBlank !== true) {
+                                  prevCode = prev.content;
+                                }
+                                const paneLocalFrame = Math.max(0, localFrame - s);
+                                const rawInner = spring({ frame: Math.min(paneLocalFrame, inner.duration ?? 0), fps, durationInFrames: inner.duration ?? 0, config: { damping: 20, stiffness: 200, mass: 0.5 } });
+                                const progInner = Math.max(0, Math.min(1, rawInner));
+                                const activeInnerFlag = paneLocalFrame < (inner.duration ?? 0);
+                                return (
+                                  <CodeBlock
+                                    oldCode={prevCode}
+                                    newCode={inner.content}
+                                    language={inner.language}
+                                    progress={inner.typeFillin === false ? 1 : progInner}
+                                    isActive={inner.highlight === false ? false : activeInnerFlag}
+                                    fileName={inner.title}
+                                    isStatic={true}
+                                    maxLineLength={maxLineLengthGlobal}
+                                    maxLineCount={maxLineCountGlobal}
+                                  />
+                                );
+                              }
+                              if (inner.type === 'cutaway-image' && RENDER_FLAGS.showImageCutaways) {
+                                return (<ImageCutaway src={inner.src} title={inner.title} width={inner.width} height={inner.height} isActive={true} />);
+                              }
+                              if (inner.type === 'cutaway-gif') {
+                                return (<GifCutaway src={inner.src} title={inner.title} width={inner.width} height={inner.height} isActive={true} />);
+                              }
+                              if (inner.type === 'cutaway-video') {
+                                return RENDER_FLAGS.showVideoCutaways ? (
+                                  <VideoCutaway src={inner.src} title={inner.title} start={inner.startSec} end={inner.endSec} width={inner.width} height={inner.height} muted={inner.muted} />
+                                ) : (
+                                  <VideoPlaceholder src={inner.src} title={inner.title} />
+                                );
+                              }
+                              if (inner.type === 'cutaway-console' && RENDER_FLAGS.showConsoleCutaways) {
+                                const paneLocalFrame = Math.max(0, localFrame - s);
+                                return (
+                                  <ConsoleCutaway
+                                    content={inner.content}
+                                    title={inner.title}
+                                    durationFrames={inner.duration}
+                                    prompt={inner.prompt}
+                                    commandLines={inner.commandLines}
+                                    commandCps={inner.commandCps}
+                                    outputCps={inner.outputCps}
+                                    enterDelay={inner.enterDelay}
+                                    showPrompt={inner.showPrompt}
+                                    cwd={inner.cwd}
+                                    prefix={inner.prefix}
+                                    frameOverride={paneLocalFrame}
+                                    maxHeightPx={inner.maxHeightPx}
+                                  />
+                                );
+                              }
+                              return null;
+                            })()}
+                          </Sequence>
+                        );
+                      })}
                     </div>
                   );
                 })}
@@ -218,10 +211,10 @@ const CodeBlockAnimation: React.FC<{ markdown: any }> = ({ markdown }) => {
         return (
           <Sequence key={index} from={block.start} durationInFrames={sequenceDuration}>
             {block.type === 'cutaway-image' && RENDER_FLAGS.showImageCutaways && (
-              <ImageCutaway src={block.src} title={block.title} width={block.width} height={block.height} />
+              <ImageCutaway src={block.src} title={block.title} width={block.width} height={block.height} isActive={isActive} />
             )}
             {block.type === 'cutaway-gif' && (
-              <GifCutaway src={block.src} title={block.title} width={block.width} height={block.height} />
+              <GifCutaway src={block.src} title={block.title} width={block.width} height={block.height} isActive={isActive} />
             )}
             {block.type === 'cutaway-video' && (
               RENDER_FLAGS.showVideoCutaways && localFrame < activeDuration ? (

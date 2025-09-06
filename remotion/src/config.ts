@@ -183,7 +183,7 @@ export const ANIMATION: AnimationConfig = {
   consoleEnterDelaySeconds: 0.2, // Small delay to simulate pressing Enter
   consoleOutputCharsPerSecond: 240, // Fast output reveal
   consoleCommandOnlyTailSeconds: 1.0, // Shorter hang on command-only cutaways
-  consoleGlobalTailSeconds: 3.0, // Extra hang after console completes (longer hold after output ends)
+  consoleGlobalTailSeconds: 2.0, // Extra hang after console completes (requested 2s)
   imageDefaultSeconds: 2.5,
   videoDefaultSeconds: 8,
   videoPlayToEndFallbackSeconds: 30,

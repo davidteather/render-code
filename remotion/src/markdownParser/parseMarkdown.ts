@@ -184,7 +184,7 @@ function extractSectionsFromContent(content: string): { sections: { title: strin
 
       const panes: LayoutPane[] = [];
       let j = i + 1;
-      while (j < lines.length && !isDirectiveClose(lines[j])) {
+      while (j < lines.length) {
         const ln = lines[j];
         if (isDirective(ln, 'pane')) {
           warnIfExtraColons(ln, 'pane');
@@ -192,31 +192,17 @@ function extractSectionsFromContent(content: string): { sections: { title: strin
           const paneAttrs = parseDirectiveAttrs(paneAttrsStr);
           const paneTitle = paneAttrs.title as string | undefined;
           const innerBlocks: ParsedBlock[] = [];
-
-          // Parse until pane close
           j++;
-          while (j < lines.length && !isDirectiveClose(lines[j])) {
+          while (j < lines.length) {
             const innerLine = lines[j];
-            // Nested code fences inside pane
+            if (isDirectiveClose(innerLine)) { j++; break; }
             if (innerLine.startsWith('```')) {
               const info = innerLine.slice(3).trim();
               const { language, title, flags } = parseInfoString(info);
               const buf: string[] = [];
               j++;
-              while (j < lines.length && !lines[j].startsWith('```')) {
-                buf.push(lines[j]);
-                j++;
-              }
-              innerBlocks.push({
-                type: 'code',
-                language,
-                content: buf.join('\n'),
-                title,
-                highlight: typeof flags.highlight === 'boolean' ? flags.highlight : undefined,
-                typeFillin: typeof flags.typeFillin === 'boolean' ? flags.typeFillin : undefined,
-                startFromBlank: typeof flags.startFromBlank === 'boolean' ? flags.startFromBlank : undefined,
-              } as any);
-              // closing ``` handled by outer while increment
+              while (j < lines.length && !lines[j].startsWith('```')) { buf.push(lines[j]); j++; }
+              innerBlocks.push({ type: 'code', language, content: buf.join('\n'), title, highlight: typeof flags.highlight === 'boolean' ? flags.highlight : undefined, typeFillin: typeof flags.typeFillin === 'boolean' ? flags.typeFillin : undefined, startFromBlank: typeof flags.startFromBlank === 'boolean' ? flags.startFromBlank : undefined } as any);
             } else if (isDirective(innerLine, 'cutaway')) {
               warnIfExtraColons(innerLine, 'cutaway');
               const attrsStrInner = innerLine.replace(/^:{3,}cutaway/, '').trim();
@@ -225,70 +211,33 @@ function extractSectionsFromContent(content: string): { sections: { title: strin
               const titleInner = attrsInner.title as string | undefined;
               const durationSecondsInner = typeof attrsInner.duration === 'number' ? attrsInner.duration : (attrsInner.durationSeconds as number | undefined);
               if (typeInner === 'image') {
-                innerBlocks.push({
-                  type: 'cutaway-image',
-                  src: String(attrsInner.src || ''),
-                  width: typeof attrsInner.width === 'number' ? attrsInner.width : undefined,
-                  height: typeof attrsInner.height === 'number' ? attrsInner.height : undefined,
-                  alt: attrsInner.alt as string | undefined,
-                  title: titleInner,
-                  durationSeconds: durationSecondsInner,
-                } as any);
+                innerBlocks.push({ type: 'cutaway-image', src: String(attrsInner.src || ''), width: typeof attrsInner.width === 'number' ? attrsInner.width : undefined, height: typeof attrsInner.height === 'number' ? attrsInner.height : undefined, alt: attrsInner.alt as string | undefined, title: titleInner, durationSeconds: durationSecondsInner } as any);
               } else if (typeInner === 'video') {
-                innerBlocks.push({
-                  type: 'cutaway-video',
-                  src: String(attrsInner.src || ''),
-                  start: typeof attrsInner.start === 'number' ? attrsInner.start : undefined,
-                  end: typeof attrsInner.end === 'number' ? attrsInner.end : undefined,
-                  width: typeof attrsInner.width === 'number' ? attrsInner.width : undefined,
-                  height: typeof attrsInner.height === 'number' ? attrsInner.height : undefined,
-                  muted: attrsInner.muted === true,
-                  playToEnd: attrsInner.playToEnd === true,
-                  title: titleInner,
-                  durationSeconds: durationSecondsInner,
-                  noTransition: attrsInner.noTransition === true ? true : undefined,
-                } as any);
+                innerBlocks.push({ type: 'cutaway-video', src: String(attrsInner.src || ''), start: typeof attrsInner.start === 'number' ? attrsInner.start : undefined, end: typeof attrsInner.end === 'number' ? attrsInner.end : undefined, width: typeof attrsInner.width === 'number' ? attrsInner.width : undefined, height: typeof attrsInner.height === 'number' ? attrsInner.height : undefined, muted: attrsInner.muted === true, playToEnd: attrsInner.playToEnd === true, title: titleInner, durationSeconds: durationSecondsInner, noTransition: attrsInner.noTransition === true ? true : undefined } as any);
               } else if (typeInner === 'gif') {
-                innerBlocks.push({
-                  type: 'cutaway-gif',
-                  src: String(attrsInner.src || ''),
-                  width: typeof attrsInner.width === 'number' ? attrsInner.width : undefined,
-                  height: typeof attrsInner.height === 'number' ? attrsInner.height : undefined,
-                  alt: attrsInner.alt as string | undefined,
-                  title: titleInner,
-                  durationSeconds: durationSecondsInner,
-                } as any);
+                innerBlocks.push({ type: 'cutaway-gif', src: String(attrsInner.src || ''), width: typeof attrsInner.width === 'number' ? attrsInner.width : undefined, height: typeof attrsInner.height === 'number' ? attrsInner.height : undefined, alt: attrsInner.alt as string | undefined, title: titleInner, durationSeconds: durationSecondsInner } as any);
               } else {
-                // console: read content until pane-level closing :::
                 const buf: string[] = [];
                 j++;
-                while (j < lines.length && !isDirectiveClose(lines[j])) {
-                  buf.push(lines[j]);
-                  j++;
-                }
-                innerBlocks.push({
-                  type: 'cutaway-console',
-                  content: buf.join('\n'),
-                  title: titleInner,
-                  durationSeconds: durationSecondsInner,
-                  prompt: typeof attrsInner.prompt === 'string' ? attrsInner.prompt : undefined,
-                  commandLines: typeof attrsInner.commandLines === 'number' ? attrsInner.commandLines : undefined,
-                  commandCps: typeof attrsInner.commandCps === 'number' ? attrsInner.commandCps : undefined,
-                  outputCps: typeof attrsInner.outputCps === 'number' ? attrsInner.outputCps : undefined,
-                  enterDelay: typeof attrsInner.enterDelay === 'number' ? attrsInner.enterDelay : undefined,
-                  showPrompt: attrsInner.showPrompt === false ? false : (attrsInner.showPrompt === true ? true : undefined),
-                  maxHeightPx: typeof attrsInner.maxHeightPx === 'number' ? attrsInner.maxHeightPx : undefined,
-                  append: attrsInner.append === true ? true : undefined,
-                  cwd: typeof attrsInner.cwd === 'string' ? attrsInner.cwd : undefined,
-                  prefix: typeof attrsInner.prefix === 'string' ? attrsInner.prefix : undefined,
-                  noTransition: attrsInner.noTransition === true ? true : undefined,
-                } as any);
-                // pane-level closing ::: consumed by outer while condition
+                while (j < lines.length && !isDirectiveClose(lines[j])) { buf.push(lines[j]); j++; }
+                innerBlocks.push({ type: 'cutaway-console', content: buf.join('\n'), title: titleInner, durationSeconds: durationSecondsInner, prompt: typeof attrsInner.prompt === 'string' ? attrsInner.prompt : undefined, commandLines: typeof attrsInner.commandLines === 'number' ? attrsInner.commandLines : undefined, commandCps: typeof attrsInner.commandCps === 'number' ? attrsInner.commandCps : undefined, outputCps: typeof attrsInner.outputCps === 'number' ? attrsInner.outputCps : undefined, enterDelay: typeof attrsInner.enterDelay === 'number' ? attrsInner.enterDelay : undefined, showPrompt: attrsInner.showPrompt === false ? false : (attrsInner.showPrompt === true ? true : undefined), maxHeightPx: typeof attrsInner.maxHeightPx === 'number' ? attrsInner.maxHeightPx : undefined, append: attrsInner.append === true ? true : undefined, cwd: typeof attrsInner.cwd === 'string' ? attrsInner.cwd : undefined, prefix: typeof attrsInner.prefix === 'string' ? attrsInner.prefix : undefined, noTransition: attrsInner.noTransition === true ? true : undefined } as any);
               }
             }
             j++;
           }
           panes.push({ title: paneTitle, blocks: innerBlocks });
+          continue;
+        }
+        if (isDirectiveClose(ln)) {
+          // Lookahead: if next non-empty is another pane, treat this as pane separator
+          let k = j + 1;
+          while (k < lines.length && lines[k].trim().length === 0) k++;
+          if (k < lines.length && isDirective(lines[k], 'pane')) {
+            j = k;
+            continue;
+          }
+          j++;
+          break;
         }
         j++;
       }
@@ -306,6 +255,7 @@ function extractSectionsFromContent(content: string): { sections: { title: strin
     // Cutaway directive
     if (isDirective(line, 'cutaway')) {
       ensureSection();
+      warnIfExtraColons(line, 'cutaway');
       const attrsStr = line.replace(/^:{3,}cutaway/, '').trim();
       const attrs = parseDirectiveAttrs(attrsStr);
       const type = String(attrs.type || 'console');

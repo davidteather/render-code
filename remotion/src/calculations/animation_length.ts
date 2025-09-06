@@ -122,6 +122,7 @@ export function computeMixedBlocksTimeline(allBlocks: any[], fps: number = 30): 
       for (const pane of paneArray) {
         const inner = computeMixedBlocksTimeline(Array.isArray(pane.blocks) ? pane.blocks : [], fps);
         panes.push({ blocks: inner.blocks as Array<CodeBlockMetadata | CutawayBlockMetadata>, totalFrames: inner.totalFrames });
+        // Use pane totalFrames (includes transitions) so layout persists until inner transitions finish
         maxPaneFrames = Math.max(maxPaneFrames, inner.totalFrames);
       }
       // Persist layout on screen for the longest inner pane timeline

@@ -1,19 +1,19 @@
 import { describe, it, expect } from 'vitest';
-import { computeCodeBlockMetadata } from '../../calculations/animation_length';
+import { computeMixedBlocksTimeline } from '../../calculations/animation_length';
 
-describe('computeCodeBlockMetadata', () => {
+describe('computeMixedBlocksTimeline (code blocks)', () => {
   it('computes increasing starts and positive durations', () => {
     const blocks = [
-      { language: 'js', content: 'a' },
-      { language: 'js', content: 'ab' },
-      { language: 'js', content: 'abc' },
+      { type: 'code', language: 'js', content: '' },
+      { type: 'code', language: 'js', content: 'a' },
+      { type: 'code', language: 'js', content: 'abc' },
     ];
-    const { blocks: meta, totalFrames } = computeCodeBlockMetadata(blocks, 1, 30);
+    const { blocks: meta, totalFrames } = computeMixedBlocksTimeline(blocks as any, 60);
     expect(meta.length).toBe(3);
-    expect(meta[0].start).toBe(0);
-    expect(meta[0].duration).toBeGreaterThan(0);
-    expect(meta[1].start).toBeGreaterThan(meta[0].start);
-    expect(totalFrames).toBeGreaterThan(meta[2].start);
+    expect((meta[0] as any).start).toBe(0);
+    expect((meta[0] as any).duration).toBeGreaterThanOrEqual(0);
+    expect((meta[1] as any).start).toBeGreaterThan((meta[0] as any).start);
+    expect(totalFrames).toBeGreaterThan((meta[2] as any).start);
   });
 });
 

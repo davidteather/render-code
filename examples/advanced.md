@@ -4,6 +4,9 @@ theme: dark
 
 # Multi-file and Cutaways Demo
 
+:::cutaway type=gif src="/assets/demo.gif" title="Intro GIF" width=1200
+:::
+
 :::note
 This is a note block that should be ignored by the renderer.
 It's useful for adding comments to the markdown that won't appear in the video.

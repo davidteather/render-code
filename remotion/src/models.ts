@@ -63,6 +63,8 @@ export interface CutawayVideoBlock extends CutawayBase {
   width?: number;
   height?: number;
   muted?: boolean;
+  /** If true, play to the end of the source clip (duration inferred elsewhere). */
+  playToEnd?: boolean;
   noTransition?: boolean;
 }
 
