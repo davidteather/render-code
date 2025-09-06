@@ -1,15 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { useVideoConfig, useCurrentFrame, staticFile } from 'remotion';
+import { useVideoConfig, staticFile } from 'remotion';
 import { parseMarkdown } from './markdownParser/parseMarkdown';
 import CodeBlockAnimation from './components/CodeBlockAnimation';
 import { ParsedMarkdown } from './models';
-import { COMPOSITION, THEME } from './config';
+import { COMPOSITION, UserSettings, loadUserSettings } from './config';
 
-type MyCompProps = { markdownFile?: string };
+type MyCompProps = { markdownFile?: string; userSettings?: UserSettings };
 
-export const MyComposition: React.FC<MyCompProps> = ({ markdownFile }) => {
-  const { fps, durationInFrames, width, height } = useVideoConfig();
-  const frame = useCurrentFrame();
+export const MyComposition: React.FC<MyCompProps> = ({ markdownFile, userSettings }) => {
+  const { width, height } = useVideoConfig();
 
   const [markdownData, setMarkdownData] = useState<ParsedMarkdown | null>(null);
   const [parseError, setParseError] = useState<unknown | null>(null);
@@ -41,9 +40,11 @@ export const MyComposition: React.FC<MyCompProps> = ({ markdownFile }) => {
     return null; // Loading placeholder
   }
 
+  const merged = loadUserSettings(userSettings);
+
   return (
-    <div style={{ width, height, backgroundColor: COMPOSITION.backgroundColor, color: 'white' }}>
-      <CodeBlockAnimation markdown={markdownData} />
+    <div style={{ width, height, backgroundColor: merged.composition.backgroundColor || COMPOSITION.backgroundColor, color: 'white' }}>
+      <CodeBlockAnimation markdown={markdownData} themeOverride={merged.theme} />
     </div>
   );
 };

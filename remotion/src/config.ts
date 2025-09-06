@@ -199,4 +199,34 @@ export const RENDER_FLAGS = {
   showConsoleCutaways: true,
 };
 
+// User-settings surface: lightweight definition and loader for future overrides
+export type UserSettings = Partial<{
+  compositionId: string;
+  width: number;
+  height: number;
+  fps: number;
+  theme: Partial<ThemeConfig>;
+  layout: Partial<LayoutConfig>;
+  animation: Partial<AnimationConfig>;
+}>;
+
+export function loadUserSettings(input?: UserSettings): {
+  composition: CompositionConfig;
+  theme: ThemeConfig;
+  layout: LayoutConfig;
+  animation: AnimationConfig;
+} {
+  const comp: CompositionConfig = {
+    ...COMPOSITION,
+    id: input?.compositionId || COMPOSITION.id,
+    width: input?.width ?? COMPOSITION.width,
+    height: input?.height ?? COMPOSITION.height,
+    fps: input?.fps ?? COMPOSITION.fps,
+  };
+  const theme: ThemeConfig = { ...THEME, ...(input?.theme || {}) } as ThemeConfig;
+  const layout: LayoutConfig = { ...LAYOUT, ...(input?.layout || {}) } as LayoutConfig;
+  const animation: AnimationConfig = { ...ANIMATION, ...(input?.animation || {}) } as AnimationConfig;
+  return { composition: comp, theme, layout, animation };
+}
+
 

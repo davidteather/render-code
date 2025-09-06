@@ -1,5 +1,6 @@
 import { diffChars } from 'diff';
 import { ANIMATION } from '../config';
+import { ParsedBlock } from '../models';
 
 const instantChanges = ANIMATION.instantChanges;
 
@@ -45,7 +46,7 @@ export type AnimationPhases = {
   nonHighlightTail: number; // frames after highlight to show the static state
 };
 
-export function computeMixedBlocksTimeline(allBlocks: any[], fps: number = 30): {
+export function computeMixedBlocksTimeline(allBlocks: ParsedBlock[], fps: number = 30, options?: { instantChangesOverride?: boolean }): {
   blocks: Array<CodeBlockMetadata | CutawayBlockMetadata | LayoutSplitMetadata>;
   totalFrames: number;
   maxLineLengthGlobal: number;
@@ -62,7 +63,7 @@ export function computeMixedBlocksTimeline(allBlocks: any[], fps: number = 30): 
   let previousCodeContent = '';
   let previousTitle: string | undefined = undefined;
 
-  const blocks = allBlocks.map((block: any) => {
+  const blocks = allBlocks.map((block) => {
     // Reduce or remove transition when chaining console cutaways for smoother back-to-back
     const isConsole = block.type === 'cutaway-console';
     const isAppendedConsole = isConsole && (block.append === true);
@@ -78,7 +79,7 @@ export function computeMixedBlocksTimeline(allBlocks: any[], fps: number = 30): 
       const addedChars = changes.filter((c) => c.added).reduce((a, c) => a + c.value.length, 0);
 
       let durationSeconds: number;
-      if (instantChanges) {
+      if (options?.instantChangesOverride ?? instantChanges) {
         durationSeconds = 0.000001;
       } else if (addedChars <= SMALL_CHARS_FAST_THRESHOLD) {
         durationSeconds = Math.max(
@@ -118,7 +119,7 @@ export function computeMixedBlocksTimeline(allBlocks: any[], fps: number = 30): 
       const start = currentFrame;
       const panes: LayoutSplitPaneMetadata[] = [];
       let maxPaneFrames = 0;
-      const paneArray: any[] = Array.isArray(block.panes) ? block.panes : [];
+      const paneArray: Array<{ blocks: ParsedBlock[] }> = Array.isArray(block.panes) ? (block.panes as any) : [];
       for (const pane of paneArray) {
         const inner = computeMixedBlocksTimeline(Array.isArray(pane.blocks) ? pane.blocks : [], fps);
         panes.push({ blocks: inner.blocks as Array<CodeBlockMetadata | CutawayBlockMetadata>, totalFrames: inner.totalFrames });

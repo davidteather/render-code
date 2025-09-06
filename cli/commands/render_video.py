@@ -113,20 +113,52 @@ def main(args):
     input_md = public_dir / target_name
     shutil.copyfile(file_path, input_md)
 
-    # Ensure assets are available in public for cutaways
+    # Ensure assets are available in public for cutaways (repo assets, then project assets override)
     repo_assets = repo_root / "assets"
     if repo_assets.exists() and repo_assets.is_dir():
         _copy_into(repo_assets, public_dir / "assets")
+    project_assets = file_path.parent / "assets"
+    if project_assets.exists() and project_assets.is_dir():
+        _copy_into(project_assets, public_dir / "assets")
 
-    # Run remotion render (no env overrides; composition reads props/defaults)
+    # Run remotion render with props + env to convey markdown file name
     env = os.environ.copy()
-    # Parser control: skip warnings flag propagates to REMOTION env for UI to react (optional)
-    if getattr(args, 'skip_warnings', False):
-        env['SKIP_WARNINGS'] = '1'
+    # Enforce fail-fast parse; do not support skip warnings via CLI
+    # Also expose for legacy env-based consumers (harmless if unused in app)
+    env['MARKDOWN_FILE'] = target_name
+
     # Render preview-only if --preview set; otherwise render both main and preview for convenience
     comp_ids = ["MyCompPreview"] if getattr(args, 'preview', False) else ["MyComp", "MyCompPreview"]
+    # Resolve project settings precedence: CLI > <mdDir>/settings.json > repo_root/settings.json
+    props_user_settings = None
+    settings_path = getattr(args, 'settings', None)
+    if settings_path:
+        try:
+            with open(settings_path, 'r') as sf:
+                props_user_settings = json.load(sf)
+        except Exception as e:
+            print(f"Warning: Could not read settings file {settings_path}: {e}")
+    else:
+        try:
+            md_dir = file_path.parent
+            md_settings = md_dir / 'settings.json'
+            if md_settings.exists():
+                with md_settings.open('r') as sf:
+                    props_user_settings = json.load(sf)
+            elif (repo_root / 'settings.json').exists():
+                with (repo_root / 'settings.json').open('r') as sf:
+                    props_user_settings = json.load(sf)
+        except Exception as e:
+            print(f"Warning: Could not read project settings.json: {e}")
+
     for comp_id in comp_ids:
-        cmd = ["npx", "remotion", "render", comp_id]
+        # Pass markdownFile and optional settings as Remotion props
+        props_obj = {"markdownFile": target_name}
+        if props_user_settings is not None:
+            props_obj['userSettings'] = props_user_settings
+        
+        props = json.dumps(props_obj)
+        cmd = ["npx", "remotion", "render", comp_id, "--props", props]
         subprocess.run(
             cmd,
             cwd=str(remotion_dir),

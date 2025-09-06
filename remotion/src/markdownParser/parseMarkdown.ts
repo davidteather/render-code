@@ -104,6 +104,7 @@ function extractSectionsFromContent(content: string): { sections: { title: strin
       const raw = m[3] ?? m[2];
       let value: any = raw;
       if (typeof value === 'string') {
+        value = value.replace(/,+$/g, ''); // trim trailing commas
         // try number
         if (/^\d+(\.\d+)?$/.test(value)) value = parseFloat(value);
         if (value === 'true') value = true;
@@ -146,6 +147,7 @@ function extractSectionsFromContent(content: string): { sections: { title: strin
         buf.push(lines[i]);
         i++;
       }
+      if (i >= lines.length) warnings.push('Unclosed code fence');
       currentSection!.blocks.push({
         type: 'code',
         language,
@@ -180,6 +182,8 @@ function extractSectionsFromContent(content: string): { sections: { title: strin
         sizes = (attrs.sizes as any[]).map((n) => Number(n)).filter((n) => !isNaN(n));
       } else if (typeof attrs.sizes === 'string') {
         sizes = attrs.sizes.split(',').map((s) => parseFloat(s.trim())).filter((n) => !isNaN(n));
+      } else if (typeof attrs.sizes === 'number') {
+        sizes = [Number(attrs.sizes)];
       }
 
       const panes: LayoutPane[] = [];

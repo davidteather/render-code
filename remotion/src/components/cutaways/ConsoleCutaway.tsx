@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { AbsoluteFill, useCurrentFrame, useVideoConfig, spring } from 'remotion';
 import { ANIMATION, LAYOUT, THEME } from '../../config';
+import { buildPrompt } from '../helpers/consoleHistory';
 
 export type ConsoleCutawayProps = {
   content: string;
@@ -27,7 +28,7 @@ export type ConsoleCutawayProps = {
   segments?: Array<{ command: string; output?: string; enterDelay?: number }>;
 };
 
-export const ConsoleCutaway: React.FC<ConsoleCutawayProps> = ({ content, title, durationFrames, prompt, cwd, prefix, commandLines, commandCps, outputCps, enterDelay, showPrompt, frameOverride, maxHeightPx, historyContent, segments }) => {
+export const ConsoleCutaway: React.FC<ConsoleCutawayProps> = ({ content, title, durationFrames, prompt, cwd, prefix, commandLines, commandCps, outputCps, enterDelay, showPrompt, frameOverride, maxHeightPx, maxWidthPx, historyContent, segments }) => {
   const globalFrame = useCurrentFrame();
   const frame = Math.max(0, (typeof frameOverride === 'number' ? frameOverride : globalFrame));
   const { fps } = useVideoConfig();
@@ -74,7 +75,11 @@ export const ConsoleCutaway: React.FC<ConsoleCutawayProps> = ({ content, title, 
     const fr = segFrames[i];
     if (i < timeline.length - 1 && f >= fr.total) {
       // whole segment is already done; add fully to printedHistory and continue
-      printedHistory += (printedHistory ? '\n' : '') + ((showPrompt ?? true) ? `${prefix ? prefix : ((cwd ? `${cwd} ` : '') + (prompt ?? '$'))} ` : '') + seg.command;
+      if (showPrompt ?? true) {
+        printedHistory += (printedHistory ? '\n' : '') + `${buildPrompt(cwd, prompt, prefix)} ${seg.command}`;
+      } else {
+        printedHistory += (printedHistory ? '\n' : '') + seg.command;
+      }
       if (seg.output) printedHistory += (seg.output ? `\n${seg.output}` : '');
       f -= fr.total;
       continue;

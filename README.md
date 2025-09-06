@@ -25,6 +25,42 @@ I've created this to easily convert a markdown file representing this tutorial -
 3. Open up premiere pro with a new project, create a sequence
 4. `python main.py export examples/basic.md`
 
+### Authoring Markdown
+
+- Code fences support flags and titles:
+  - ```ts:{title="app.ts", highlight=false, type_fillin=false, start_from_blank=true}
+  - Legacy: ```js:src/index.js (infers title as `index.js`)
+- Layouts and cutaways:
+  - :::layout direction=row gap=12 sizes=60,40 … :::
+  - :::cutaway type=image src="/assets/prem1.png" :::
+  - :::cutaway type=gif src="/assets/demo.gif" :::
+  - :::cutaway type=video src="/assets/clip.mp4" start=3 end=7 :::
+  - :::cutaway type=console title="Terminal" ::: (content) :::
+
+### Settings (optional)
+
+- Per-project precedence (highest first):
+  1) `--settings path/to/settings.json`
+  2) `<markdown_dir>/settings.json` (auto-detected)
+  3) repo root `settings.json`
+  - This enables project-specific fps/size/theme/animation without changing code.
+- Example shape (partial):
+```json
+{
+  "fps": 60,
+  "width": 3840,
+  "height": 2160,
+  "theme": {"codeFontFamily": "Fira Code, monospace"},
+  "animation": {"transitionSeconds": 0.5}
+}
+```
+
+### Development & Testing
+
+- Install Remotion deps: `python main.py setup`
+- Run tests: `cd remotion && npm test` (or `npm run test:coverage`)
+- Lint: `cd remotion && npm run lint` (or `npm run lint:fix`)
+
 ## Output Examples
 
 ### Remotion Output 
@@ -49,7 +85,7 @@ Post cut, start typing
 
 Still early in code and working on more things
 
-* [ ] - allow styling control through a `settings.json`
+* [x] - allow styling control through a `settings.json`
 * [ ] - allow "excluded" blocks for like cli runs of in progress code
 * [ ] - multi-aspect ratio support
 * [ ] - clean up the code 😅

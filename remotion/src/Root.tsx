@@ -13,7 +13,7 @@ export const RemotionRoot: React.FC = () => {
         fps={COMPOSITION.fps}
         width={COMPOSITION.width}
         height={COMPOSITION.height}
-        defaultProps={{ markdownFile: 'input.md' }}
+        defaultProps={{ markdownFile: 'input.md', userSettings: undefined }}
       />
       <Composition
         id={COMPOSITION_PREVIEW.id}
@@ -22,7 +22,7 @@ export const RemotionRoot: React.FC = () => {
         fps={COMPOSITION.fps}
         width={COMPOSITION_PREVIEW.width as number}
         height={COMPOSITION_PREVIEW.height as number}
-        defaultProps={{ markdownFile: 'input.md' }}
+        defaultProps={{ markdownFile: 'input.md', userSettings: undefined }}
       />
     </>
   );
