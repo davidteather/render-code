@@ -19,6 +19,8 @@ export type ConsoleCutawayProps = {
   frameOverride?: number;
   /** Optional maximum height in pixels to allow scrolling for long outputs. */
   maxHeightPx?: number;
+  /** Optional maximum width override in pixels for the console container. */
+  maxWidthPx?: number;
   /** Optional prior history to show above the current command/output. */
   historyContent?: string;
   /** Optional multiple segments for multi-command in one block. */
@@ -109,7 +111,7 @@ export const ConsoleCutaway: React.FC<ConsoleCutawayProps> = ({ content, title, 
         borderRadius: `${THEME.codeBorderRadiusPx + 4}px`,
         boxShadow: appended ? 'none' : '0 12px 40px rgba(0,0,0,0.35)',
         width: '92%',
-        maxWidth: '100%',
+        maxWidth: maxWidthPx ? `${maxWidthPx}px` : (LAYOUT.consoleMaxWidthPx ? `${LAYOUT.consoleMaxWidthPx}px` : '100%'),
         overflow: 'hidden',
         maxHeight: maxHeightPx ? `${maxHeightPx}px` : undefined,
         transform: appended ? 'none' : `scale(${0.96 + appear * 0.04})`,

@@ -203,6 +203,7 @@ const CodeBlockAnimation: React.FC<{ markdown: any }> = ({ markdown }) => {
                                     prefix={inner.prefix}
                                     frameOverride={paneLocalFrame}
                                     maxHeightPx={inner.maxHeightPx}
+                                    maxWidthPx={inner.maxWidthPx}
                                   />
                                 );
                               }

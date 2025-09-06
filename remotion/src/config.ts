@@ -97,6 +97,8 @@ export type LayoutConfig = {
   filenameBarHeightPx: number;
   /** Multiplier for line-height in static sizing calculations. */
   staticLineHeightMultiplier: number;
+  /** Optional maximum width for console cutaway container (px). */
+  consoleMaxWidthPx?: number;
 };
 
 export const LAYOUT: LayoutConfig = {
@@ -111,6 +113,7 @@ export const LAYOUT: LayoutConfig = {
   staticVerticalPaddingPx: 40, // Extra vertical budget when precomputing block heights
   filenameBarHeightPx: 44, // Reserved height for optional filename bar
   staticLineHeightMultiplier: 1.5, // Line height multiplier; higher = more vertical spacing
+  consoleMaxWidthPx: 1200,
 };
 
 // Animation pacing and behavior
