@@ -47,8 +47,8 @@ export interface CutawayBase extends BaseBlock {
 export interface CutawayImageBlock extends CutawayBase {
   type: typeof CutawayType.Image;
   src: string;
-  width?: number;
-  height?: number;
+  width?: number | string;
+  height?: number | string;
   alt?: string;
   noTransition?: boolean;
 }
@@ -56,8 +56,8 @@ export interface CutawayImageBlock extends CutawayBase {
 export interface CutawayGifBlock extends CutawayBase {
   type: typeof CutawayType.Gif;
   src: string;
-  width?: number;
-  height?: number;
+  width?: number | string;
+  height?: number | string;
   alt?: string;
   noTransition?: boolean;
 }
@@ -68,8 +68,8 @@ export interface CutawayVideoBlock extends CutawayBase {
   /** Optional in/out (seconds) */
   start?: number;
   end?: number;
-  width?: number;
-  height?: number;
+  width?: number | string;
+  height?: number | string;
   muted?: boolean;
   /** If true, play to the end of the source clip (duration inferred elsewhere). */
   playToEnd?: boolean;
@@ -94,12 +94,18 @@ export interface CutawayConsoleBlock extends CutawayBase {
   showPrompt?: boolean;
   /** Optional maximum height to allow scroll for long outputs. */
   maxHeightPx?: number;
+  /** Optional maximum height using CSS units (e.g. '80%', '60vh'). */
+  maxHeight?: string;
   /** If true, include previous console history (by matching title) above this content. */
   append?: boolean;
   /** Optional working directory label to show in the prompt, e.g. 'portfolio'. */
   cwd?: string;
   /** Optional explicit prefix to render before command, overrides prompt/cwd combo. */
   prefix?: string;
+  /** Optional maximum width in pixels (legacy). */
+  maxWidthPx?: number;
+  /** Optional maximum width using CSS units (e.g. '80%', '1200px', '70vw'). */
+  maxWidth?: string;
   /** Play multiple commands+outputs sequentially inside one block if provided. */
   segments?: Array<{ command: string; output?: string; enterDelay?: number }>;
   /** Skip appear/transition for this block. */

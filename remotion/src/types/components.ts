@@ -12,10 +12,10 @@ export type CodeBlockRendererProps = {
   maxLineCount: number;
 };
 
-export type CutawayImageProps = { type: typeof CutawayType.Image; src: string; title?: string; width?: number; height?: number };
-export type CutawayGifProps = { type: typeof CutawayType.Gif; src: string; title?: string; width?: number; height?: number };
-export type CutawayVideoProps = { type: typeof CutawayType.Video; src: string; title?: string; startSec?: number; endSec?: number; width?: number; height?: number; muted?: boolean };
-export type CutawayConsoleProps = { type: typeof CutawayType.Console; content: string; title?: string; durationFrames?: number; prompt?: string; commandLines?: number; commandCps?: number; outputCps?: number; enterDelay?: number; showPrompt?: boolean; cwd?: string; prefix?: string; frameOverride?: number; maxHeightPx?: number; maxWidthPx?: number; historyContent?: string; segments?: Array<{ command: string; output?: string; enterDelay?: number; cwd?: string; prefix?: string; prompt?: string }>; };
+export type CutawayImageProps = { type: typeof CutawayType.Image; src: string; title?: string; width?: number | string; height?: number | string };
+export type CutawayGifProps = { type: typeof CutawayType.Gif; src: string; title?: string; width?: number | string; height?: number | string };
+export type CutawayVideoProps = { type: typeof CutawayType.Video; src: string; title?: string; startSec?: number; endSec?: number; width?: number | string; height?: number | string; muted?: boolean };
+export type CutawayConsoleProps = { type: typeof CutawayType.Console; content: string; title?: string; durationFrames?: number; prompt?: string; commandLines?: number; commandCps?: number; outputCps?: number; enterDelay?: number; showPrompt?: boolean; cwd?: string; prefix?: string; frameOverride?: number; maxHeightPx?: number; maxWidthPx?: number; maxHeight?: string; maxWidth?: string; historyContent?: string; segments?: Array<{ command: string; output?: string; enterDelay?: number; cwd?: string; prefix?: string; prompt?: string }>; };
 
 export type CutawayRendererProps = (CutawayImageProps | CutawayGifProps | CutawayVideoProps | CutawayConsoleProps) & { isActive?: boolean };
 

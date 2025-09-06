@@ -105,9 +105,9 @@ export const LAYOUT: LayoutConfig = {
   mobileBreakpointPx: 768, // Below this width, mobile font sizes/max-widths apply
   codeFontSizeMobile: "1.6rem", // Code font size for narrow/mobile viewports
   codeFontSizeDesktop: "2rem", // Code font size for desktop FHD/QHD
-  codeFontSizeDesktop4k: "2.6rem", // Larger default for 4K so text isn’t too small
-  codeMaxWidthDesktop: "80ch", // Limits line length on desktop for readability
-  codeMaxWidthDesktop4k: "90ch", // Slightly wider lines on 4K to match larger text
+  codeFontSizeDesktop4k: "3rem", // Larger default for 4K for better readability
+  codeMaxWidthDesktop: "90ch", // Allow wider lines on desktop
+  codeMaxWidthDesktop4k: "110ch", // Wider lines on 4K to avoid narrow column look
   codeMaxWidthMobile: "90%", // Mobile max width relative to viewport
   codePaddingPx: 20, // Inner padding of the <pre> code container
   staticVerticalPaddingPx: 40, // Extra vertical budget when precomputing block heights

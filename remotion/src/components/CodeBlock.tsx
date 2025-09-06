@@ -100,7 +100,6 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
   const staticStyles = useMemo(() => {
     if (!isStatic) return {};
 
-    const containerWidth = `${(maxLineLength || 1) + 4}ch`;
     const lineHeight = LAYOUT.staticLineHeightMultiplier;
     const verticalPadding = LAYOUT.staticVerticalPaddingPx;
     const fileNameHeight = fileName ? LAYOUT.filenameBarHeightPx : 0;
@@ -111,8 +110,6 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
     const lineHeightPx = numericFontSizePx * lineHeight;
 
     return {
-      // Allow container to shrink to fit its pane while capping at computed width
-      maxWidth: containerWidth,
       minHeight: `${((maxLineCount || 1) * lineHeightPx + verticalPadding + fileNameHeight) / 16}rem`
     };
   }, [isStatic, maxLineLength, maxLineCount, fileName, isMobile]);

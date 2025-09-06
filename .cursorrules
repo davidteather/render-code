@@ -1,3 +1,31 @@
+# Cursor Rules for this repo
+
+# Automatically run lint and tests for the Remotion app after each successful edit
+# Note: assumes Node and deps are installed; adjust commands if using bun.
+postEditCommands:
+  - run: "npm run lint" 
+    cwd: "remotion"
+  - run: "npm test --silent" 
+    cwd: "remotion"
+
+# Preferences
+preferences:
+  - editor.formatOnSave: true
+  - typescript.tsserver.useSyntaxServer: true
+  - typescript.tsserver.experimental.enableProjectDiagnostics: true
+  - eslint.enable: true
+  - eslint.run: onType
+
+  # Coding standards
+standards:
+  - "Favor explicit types over any."
+  - "Prefer readonly/const and pure functions."
+  - "Use functional React components; avoid React.FC defaultProps."
+  - "Avoid broad try/except; handle expected errors explicitly."
+  - "Avoid os.system; use subprocess.run([...], check=True)."
+  - "Avoid mutation of props/inputs; return new objects."
+  - "Keep components small; extract helpers."
+
 Repo purpose
 - Define entire programming videos as Markdown and render code-diff animations via Remotion.
 - Output an edit-friendly video and an editor timeline (Final Cut Pro focus; Premiere kept as legacy/TODO).
