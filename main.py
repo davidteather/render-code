@@ -17,6 +17,7 @@ def create_parser():
     parser_render.add_argument('file', help="Path to the markdown file")
     parser_render.add_argument('--preview', action='store_true', help='Enable preview mode (lower res/fps, faster)')
     parser_render.add_argument('--markdown-file', type=str, help='Name to use inside remotion/public (default: input.md)')
+    parser_render.add_argument('--skip-warnings', action='store_true', help='Proceed even if parser warnings are found')
     parser_render.set_defaults(func=render_main)
 
     # Subcommand for exporting the project to Premiere Pro

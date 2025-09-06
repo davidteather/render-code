@@ -12,6 +12,7 @@ export const MyComposition: React.FC<MyCompProps> = ({ markdownFile }) => {
   const frame = useCurrentFrame();
 
   const [markdownData, setMarkdownData] = useState<ParsedMarkdown | null>(null);
+  const [parseError, setParseError] = useState<unknown | null>(null);
 
   const inputFilePath = staticFile(markdownFile || 'input.md');
 
@@ -24,15 +25,20 @@ export const MyComposition: React.FC<MyCompProps> = ({ markdownFile }) => {
         console.log('Parsed Markdown:', parsedData);
       } catch (err) {
         console.error('Error parsing markdown:', err);
+        setParseError(err);
       }
     }
 
     main();
   }, [inputFilePath]);
 
+  // Fail fast on parse errors so the renderer exits with a non-zero status
+  if (parseError) {
+    throw parseError instanceof Error ? parseError : new Error(String(parseError));
+  }
   // Return early if markdown data hasn't been loaded yet
   if (!markdownData) {
-    return null; // You can also render a loading state here
+    return null; // Loading placeholder
   }
 
   return (

@@ -18,8 +18,25 @@ export type CodeBlockMetadata = {
 
 export type CutawayBlockMetadata =
   | ({ type: 'cutaway-image'; src: string; title?: string; width?: number; height?: number } & { start: number; duration: number; addedChars: 0 })
+  | ({ type: 'cutaway-gif'; src: string; title?: string; width?: number; height?: number } & { start: number; duration: number; addedChars: 0 })
   | ({ type: 'cutaway-video'; src: string; title?: string; startSec?: number; endSec?: number; width?: number; height?: number; muted?: boolean } & { start: number; duration: number; addedChars: 0 })
-  | ({ type: 'cutaway-console'; content: string; title?: string; prompt?: string; commandLines?: number; commandCps?: number; outputCps?: number; enterDelay?: number; showPrompt?: boolean } & { start: number; duration: number; addedChars: 0 });
+  | ({ type: 'cutaway-console'; content: string; title?: string; prompt?: string; commandLines?: number; commandCps?: number; outputCps?: number; enterDelay?: number; showPrompt?: boolean; cwd?: string; prefix?: string; maxHeightPx?: number; append?: boolean } & { start: number; duration: number; addedChars: 0 });
+
+export type LayoutSplitPaneMetadata = {
+  blocks: Array<CodeBlockMetadata | CutawayBlockMetadata>;
+  totalFrames: number;
+};
+
+export type LayoutSplitMetadata = {
+  type: 'layout-split';
+  direction: 'row' | 'column';
+  gap?: number;
+  sizes?: number[];
+  panes: LayoutSplitPaneMetadata[];
+  start: number;
+  duration: number;
+  addedChars: 0;
+};
 
 export type AnimationPhases = {
   typingStart: number; // == start
@@ -29,7 +46,7 @@ export type AnimationPhases = {
 };
 
 export function computeMixedBlocksTimeline(allBlocks: any[], fps: number = 30): {
-  blocks: Array<CodeBlockMetadata | CutawayBlockMetadata>;
+  blocks: Array<CodeBlockMetadata | CutawayBlockMetadata | LayoutSplitMetadata>;
   totalFrames: number;
   maxLineLengthGlobal: number;
   maxLineCountGlobal: number;
@@ -38,7 +55,7 @@ export function computeMixedBlocksTimeline(allBlocks: any[], fps: number = 30): 
   const SMALL_CHARS_FAST_THRESHOLD = ANIMATION.smallCharsFastThreshold;
   const m = ANIMATION.timingMultiplier || 1;
   const factor = m > 0 ? m : 1;
-  const transitionFrames = Math.round(ANIMATION.transitionSeconds * factor * fps);
+  let transitionFrames = ANIMATION.disableTransitions ? 0 : Math.round(ANIMATION.transitionSeconds * factor * fps);
   const defaultCutawaySeconds = 1.5; // legacy fallback; specific types have better defaults
 
   // Track previous code content for diffs across only code blocks
@@ -46,6 +63,12 @@ export function computeMixedBlocksTimeline(allBlocks: any[], fps: number = 30): 
   let previousTitle: string | undefined = undefined;
 
   const blocks = allBlocks.map((block: any) => {
+    // Reduce or remove transition when chaining console cutaways for smoother back-to-back
+    const isConsole = block.type === 'cutaway-console';
+    const isAppendedConsole = isConsole && (block.append === true);
+    const localTransitionFrames = isAppendedConsole
+      ? 0
+      : (isConsole ? Math.round((ANIMATION.transitionSeconds * 0.35) * factor * fps) : transitionFrames);
     if (block.type === 'code') {
       const prevCode = previousCodeContent;
       // Reset baseline if title changed or explicit startFromBlank flag present
@@ -90,6 +113,33 @@ export function computeMixedBlocksTimeline(allBlocks: any[], fps: number = 30): 
       return out;
     }
 
+    // Layout split: compute nested pane timelines and take max duration
+    if (block.type === 'layout-split') {
+      const start = currentFrame;
+      const panes: LayoutSplitPaneMetadata[] = [];
+      let maxPaneFrames = 0;
+      const paneArray: any[] = Array.isArray(block.panes) ? block.panes : [];
+      for (const pane of paneArray) {
+        const inner = computeMixedBlocksTimeline(Array.isArray(pane.blocks) ? pane.blocks : [], fps);
+        panes.push({ blocks: inner.blocks as Array<CodeBlockMetadata | CutawayBlockMetadata>, totalFrames: inner.totalFrames });
+        maxPaneFrames = Math.max(maxPaneFrames, inner.totalFrames);
+      }
+      // Persist layout on screen for the longest inner pane timeline
+      const duration = maxPaneFrames;
+      currentFrame += duration + transitionFrames;
+      const out: LayoutSplitMetadata = {
+        type: 'layout-split',
+        direction: (block.direction === 'column' ? 'column' : 'row'),
+        gap: typeof block.gap === 'number' ? block.gap : undefined,
+        sizes: Array.isArray(block.sizes) ? block.sizes : undefined,
+        panes,
+        start,
+        duration,
+        addedChars: 0,
+      };
+      return out as any;
+    }
+
     // Cutaways
     const start = currentFrame;
     let seconds = (block.durationSeconds as number | undefined) ?? defaultCutawaySeconds;
@@ -108,13 +158,19 @@ export function computeMixedBlocksTimeline(allBlocks: any[], fps: number = 30): 
 
       const cmdSeconds = command.length > 0 ? command.length / Math.max(1, commandCps) : 0;
       const outSeconds = output.length > 0 ? output.length / Math.max(1, outputCps) : 0;
+      // If there is no output, add a small tail to hang on the typed command
+      const commandOnlyTail = output.length === 0 ? ANIMATION.consoleCommandOnlyTailSeconds : 0;
+      const globalTail = ANIMATION.consoleGlobalTailSeconds || 0;
       // Small floor so an empty output still shows briefly
       const minVisibleSeconds = 0.4;
-      seconds = Math.max(minVisibleSeconds, cmdSeconds + enterDelay + outSeconds);
+      seconds = Math.max(minVisibleSeconds, cmdSeconds + enterDelay + outSeconds + commandOnlyTail + globalTail);
     }
 
     // Type-specific defaults if not explicitly provided
     if (block.type === 'cutaway-image' && (block.durationSeconds === undefined || block.durationSeconds === null)) {
+      seconds = ANIMATION.imageDefaultSeconds;
+    }
+    if (block.type === 'cutaway-gif' && (block.durationSeconds === undefined || block.durationSeconds === null)) {
       seconds = ANIMATION.imageDefaultSeconds;
     }
     if (block.type === 'cutaway-video' && (block.durationSeconds === undefined || block.durationSeconds === null)) {
@@ -128,11 +184,25 @@ export function computeMixedBlocksTimeline(allBlocks: any[], fps: number = 30): 
     }
 
     const duration = Math.round(seconds * factor * fps);
-    currentFrame += duration + transitionFrames;
+    currentFrame += duration + localTransitionFrames;
 
     if (block.type === 'cutaway-image') {
       const out: CutawayBlockMetadata = {
         type: 'cutaway-image',
+        src: String(block.src || ''),
+        title: block.title,
+        width: typeof block.width === 'number' ? block.width : undefined,
+        height: typeof block.height === 'number' ? block.height : undefined,
+        start,
+        duration,
+        addedChars: 0,
+      } as any;
+      return out;
+    }
+
+    if (block.type === 'cutaway-gif') {
+      const out: CutawayBlockMetadata = {
+        type: 'cutaway-gif',
         src: String(block.src || ''),
         title: block.title,
         width: typeof block.width === 'number' ? block.width : undefined,
@@ -172,6 +242,10 @@ export function computeMixedBlocksTimeline(allBlocks: any[], fps: number = 30): 
       outputCps: block.outputCps,
       enterDelay: block.enterDelay,
       showPrompt: block.showPrompt,
+      cwd: block.cwd,
+      prefix: block.prefix,
+      maxHeightPx: block.maxHeightPx,
+      append: block.append === true,
       start,
       duration,
       addedChars: 0,

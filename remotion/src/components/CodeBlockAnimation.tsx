@@ -3,9 +3,10 @@ import React, { useMemo } from 'react';
 import { AbsoluteFill, useCurrentFrame, useVideoConfig, Sequence, spring, Artifact } from 'remotion';
 import { CodeBlock } from './CodeBlock';
 import { computeMixedBlocksTimeline } from '../calculations/animation_length';
-import { ANIMATION, THEME } from '../config';
-import { ImageCutaway } from './cutaways/ImageCutaway';
+import { ANIMATION, THEME, RENDER_FLAGS } from '../config';
+import { ImageCutaway, GifCutaway } from './cutaways/ImageCutaway';
 import { VideoCutaway } from './cutaways/VideoCutaway';
+import { VideoPlaceholder } from './cutaways/VideoPlaceholder';
 import { ConsoleCutaway } from './cutaways/ConsoleCutaway';
 import { computePerBlockHolds, computeAdjustedHighlightHold } from '../calculations/animation_phases';
 
@@ -111,16 +112,125 @@ const CodeBlockAnimation: React.FC<{ markdown: any }> = ({ markdown }) => {
           );
         }
 
+        // Layout-split container (row/column panes)
+        if (block.type === 'layout-split') {
+          const panes: any[] = Array.isArray(block.panes) ? block.panes : [];
+          const dir: 'row' | 'column' = (block.direction === 'column' ? 'column' : 'row');
+          const gapPx = typeof block.gap === 'number' ? block.gap : 24;
+          const sizes: number[] | undefined = (Array.isArray(block.sizes) && block.sizes.length === panes.length) ? block.sizes : undefined;
+          return (
+            <Sequence key={index} from={block.start} durationInFrames={sequenceDuration}>
+              <AbsoluteFill style={{ display: 'flex', flexDirection: dir, gap: `${gapPx}px`, padding: 24 }}>
+                {panes.map((pane, pIdx) => {
+                  const basis = sizes ? sizes[pIdx] : (100 / Math.max(1, panes.length));
+                  const widthStyle = dir === 'row' ? { flex: `0 0 ${basis}%`, width: `${basis}%`, height: '100%' } : { width: '100%', height: `${basis}%` };
+                  const innerBlocks = pane.blocks as any[];
+                  // Determine active inner block by localFrame relative to layout start
+                  const activeInner = (() => {
+                    if (!innerBlocks || innerBlocks.length === 0) return null;
+                    for (let ii = 0; ii < innerBlocks.length; ii++) {
+                      const ib = innerBlocks[ii];
+                      const s = ib.start ?? 0;
+                      const d = ib.duration ?? 0;
+                      const nextIb = innerBlocks[ii + 1];
+                      const seqDur = Math.max(1, (nextIb ? (nextIb.start ?? 0) - s : d));
+                      if (localFrame >= s && localFrame < s + seqDur) return ib;
+                    }
+                    // If before the first block starts, show the first; if after the last, show the last
+                    if (localFrame < (innerBlocks[0].start ?? 0)) return innerBlocks[0];
+                    return innerBlocks[innerBlocks.length - 1];
+                  })();
+                  const inner = activeInner;
+                  return (
+                    <div key={`pane-${pIdx}`} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative', overflow: 'hidden', ...widthStyle }}>
+                      {!inner ? null : (() => {
+                        const innerLocal = Math.max(0, localFrame - (inner.start ?? 0));
+                        if (inner.type === 'code') {
+                          const idxInner = innerBlocks.indexOf(inner);
+                          let prevCodePane = '';
+                          if (idxInner > 0) {
+                            const prevInner = innerBlocks[idxInner - 1];
+                            if (prevInner.type === 'code' && prevInner.title === inner.title && inner.startFromBlank !== true) {
+                              prevCodePane = prevInner.content;
+                            }
+                          }
+                          const rawInner = spring({ frame: Math.min(innerLocal, inner.duration ?? 0), fps, durationInFrames: inner.duration ?? 0, config: { damping: 20, stiffness: 200, mass: 0.5 } });
+                          const progInner = Math.max(0, Math.min(1, rawInner));
+                          const activeInnerFlag = innerLocal < (inner.duration ?? 0);
+                          return (
+                            <CodeBlock
+                              oldCode={prevCodePane}
+                              newCode={inner.content}
+                              language={inner.language}
+                              progress={inner.typeFillin === false ? 1 : progInner}
+                              isActive={inner.highlight === false ? false : activeInnerFlag}
+                              fileName={inner.title}
+                              isStatic={true}
+                              maxLineLength={maxLineLengthGlobal}
+                              maxLineCount={maxLineCountGlobal}
+                            />
+                          );
+                        }
+                        if (inner.type === 'cutaway-image' && RENDER_FLAGS.showImageCutaways) {
+                          return (<ImageCutaway src={inner.src} title={inner.title} width={inner.width} height={inner.height} />);
+                        }
+                        if (inner.type === 'cutaway-gif') {
+                          return (<GifCutaway src={inner.src} title={inner.title} width={inner.width} height={inner.height} />);
+                        }
+                        if (inner.type === 'cutaway-video') {
+                          const active = innerLocal < (inner.duration ?? 0);
+                          return active && RENDER_FLAGS.showVideoCutaways ? (
+                            <VideoCutaway src={inner.src} title={inner.title} start={inner.startSec} end={inner.endSec} width={inner.width} height={inner.height} muted={inner.muted} />
+                          ) : (
+                            <VideoPlaceholder src={inner.src} title={inner.title} />
+                          );
+                        }
+                        if (inner.type === 'cutaway-console' && RENDER_FLAGS.showConsoleCutaways) {
+                          return (
+                            <ConsoleCutaway
+                              content={inner.content}
+                              title={inner.title}
+                              durationFrames={inner.duration}
+                              prompt={inner.prompt}
+                              commandLines={inner.commandLines}
+                              commandCps={inner.commandCps}
+                              outputCps={inner.outputCps}
+                              enterDelay={inner.enterDelay}
+                              showPrompt={inner.showPrompt}
+                              cwd={inner.cwd}
+                              prefix={inner.prefix}
+                              frameOverride={innerLocal}
+                              maxHeightPx={inner.maxHeightPx}
+                            />
+                          );
+                        }
+                        return null;
+                      })()}
+                    </div>
+                  );
+                })}
+              </AbsoluteFill>
+            </Sequence>
+          );
+        }
+
         // Cutaways render without typing/highlight logic
         return (
           <Sequence key={index} from={block.start} durationInFrames={sequenceDuration}>
-            {block.type === 'cutaway-image' && (
+            {block.type === 'cutaway-image' && RENDER_FLAGS.showImageCutaways && (
               <ImageCutaway src={block.src} title={block.title} width={block.width} height={block.height} />
             )}
-            {block.type === 'cutaway-video' && localFrame < activeDuration && (
-              <VideoCutaway src={block.src} title={block.title} start={block.startSec} end={block.endSec} width={block.width} height={block.height} muted={block.muted} />
+            {block.type === 'cutaway-gif' && (
+              <GifCutaway src={block.src} title={block.title} width={block.width} height={block.height} />
             )}
-            {block.type === 'cutaway-console' && (
+            {block.type === 'cutaway-video' && (
+              RENDER_FLAGS.showVideoCutaways && localFrame < activeDuration ? (
+                <VideoCutaway src={block.src} title={block.title} start={block.startSec} end={block.endSec} width={block.width} height={block.height} muted={block.muted} />
+              ) : (
+                <VideoPlaceholder src={block.src} title={block.title} />
+              )
+            )}
+            {block.type === 'cutaway-console' && RENDER_FLAGS.showConsoleCutaways && (
               <ConsoleCutaway
                 content={block.content}
                 title={block.title}
@@ -131,7 +241,34 @@ const CodeBlockAnimation: React.FC<{ markdown: any }> = ({ markdown }) => {
                 outputCps={block.outputCps}
                 enterDelay={block.enterDelay}
                 showPrompt={block.showPrompt}
+                cwd={block.cwd}
+                prefix={block.prefix}
                 frameOverride={localFrame}
+                maxHeightPx={block.maxHeightPx}
+                historyContent={(block.append && (() => {
+                  // Accumulate prior console outputs within same title if append flag set,
+                  // formatting each prior command with its prompt/cwd for terminal-like transcript
+                  let history = '';
+                  for (let k = 0; k < index; k++) {
+                    const prev = blocks[k] as any;
+                    if (prev.type === 'cutaway-console' && prev.title === block.title) {
+                      const raw = String(prev.content || '');
+                      const lines = raw.split('\n');
+                      const cmdLines = Math.max(1, (prev.commandLines as number | undefined) ?? 1);
+                      const command = lines.slice(0, cmdLines).join('\n');
+                      const output = lines.slice(cmdLines).join('\n');
+                      const promptLabel = ((): string => {
+                        if (prev.prefix) return String(prev.prefix);
+                        const basePrompt = String((prev.prompt ?? '$'));
+                        if (prev.cwd) return `${prev.cwd} ${basePrompt}`;
+                        return basePrompt;
+                      })();
+                      const transcript = `${promptLabel} ${command}` + (output ? `\n${output}` : '');
+                      history += (history ? '\n' : '') + transcript;
+                    }
+                  }
+                  return history;
+                })()) || undefined}
               />
             )}
           </Sequence>

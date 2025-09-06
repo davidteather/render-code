@@ -119,6 +119,8 @@ export type AnimationConfig = {
   timingMultiplier: number;
   /** Inter-block transition time in seconds */
   transitionSeconds: number;
+  /** If true, disable all inter-block transitions/appears globally. */
+  disableTransitions?: boolean;
   /** If true, typing is instant. */
   instantChanges: boolean;
   /** Characters threshold below which typing is accelerated. */
@@ -149,6 +151,10 @@ export type AnimationConfig = {
   consoleEnterDelaySeconds: number;
   /** Console output reveal speed in chars/sec (fast). */
   consoleOutputCharsPerSecond: number;
+  /** Additional hang after typing when there is no output (seconds). */
+  consoleCommandOnlyTailSeconds: number;
+  /** Extra tail seconds for any console block after fully filled (global). */
+  consoleGlobalTailSeconds: number;
   /** Default seconds for an image cutaway if not specified. */
   imageDefaultSeconds: number;
   /** Default seconds for a video cutaway if not specified and no start/end given. */
@@ -160,6 +166,7 @@ export type AnimationConfig = {
 export const ANIMATION: AnimationConfig = {
   timingMultiplier: 1, // Global pacing knob: <1 = faster overall; >1 = slower overall
   transitionSeconds: 0.67, // Time between blocks; higher adds more pause between steps (~20f@30fps)
+  disableTransitions: false,
   instantChanges: false, // If true, typing is instantaneous (debug/demo mode)
   smallCharsFastThreshold: 12, // Typing ≤ this count uses the “small snippet” timing curve (faster)
   minDurationSmallSnippetSeconds: 0.27, // Minimum typing time for short snippets (~8f@30fps)
@@ -170,14 +177,23 @@ export const ANIMATION: AnimationConfig = {
   tailHoldMaxSeconds: 0.93, // Clamp for highlight/tail hold. Higher = can hang longer (~28f@30fps)
   tailHoldScaleBaseSeconds: 8 / 30, // Base for scaling hold vs. added chars (start point). Higher = more baseline hang
   tailHoldScaleSecondsPerChar: 0.5 / 30, // Additional hold per added char. Higher = longer hang for bigger diffs
-  lastBlockTailBonusSeconds: 0.1, // Extra time after final block completes (~3f@30fps). Higher = longer end card
+  lastBlockTailBonusSeconds: 0.5, // Longer hang at the very end
   trimSafetySeconds: 0.2, // Extra seconds added at trimming only to avoid accidental cutoffs
   consoleCommandCharsPerSecond: 14, // Human-ish typing speed for commands
   consoleEnterDelaySeconds: 0.2, // Small delay to simulate pressing Enter
   consoleOutputCharsPerSecond: 240, // Fast output reveal
+  consoleCommandOnlyTailSeconds: 1.0, // Shorter hang on command-only cutaways
+  consoleGlobalTailSeconds: 3.0, // Extra hang after console completes (longer hold after output ends)
   imageDefaultSeconds: 2.5,
   videoDefaultSeconds: 8,
   videoPlayToEndFallbackSeconds: 30,
+};
+
+// Development/render-time flags to temporarily hide heavy cutaways
+export const RENDER_FLAGS = {
+  showImageCutaways: true,
+  showVideoCutaways: false, // Disable by default for faster previews
+  showConsoleCutaways: true,
 };
 
 

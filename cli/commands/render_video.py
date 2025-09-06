@@ -120,6 +120,9 @@ def main(args):
 
     # Run remotion render (no env overrides; composition reads props/defaults)
     env = os.environ.copy()
+    # Parser control: skip warnings flag propagates to REMOTION env for UI to react (optional)
+    if getattr(args, 'skip_warnings', False):
+        env['SKIP_WARNINGS'] = '1'
     # Render preview-only if --preview set; otherwise render both main and preview for convenience
     comp_ids = ["MyCompPreview"] if getattr(args, 'preview', False) else ["MyComp", "MyCompPreview"]
     for comp_id in comp_ids:

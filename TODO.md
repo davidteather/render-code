@@ -13,6 +13,7 @@ Status: Alpha. Focus on macOS + Final Cut Pro. Keep Premiere as legacy.
 - [ ] Support cutaways (console/image/video) via directives in markdown.
   - Example: frontmatter or inline `:::cutaway type=console|image|video src=...`.
 - [ ] Support non-code textual slides (titles/paragraphs) with simple styling.
+- [ ] Support a split-screen layout with two columns or rows for a side by side of components together. Like a left hand side image and a right hand side code block with an optional screen divider
 
 ## Rendering & metadata
 - [ ] Unify on the metadata-emitting `CodeBlockAnimation` and remove old duplicate.
