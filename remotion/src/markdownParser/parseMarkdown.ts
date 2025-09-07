@@ -69,13 +69,17 @@ function extractSectionsFromContent(content: string): { sections: { title: strin
     const attrsRaw = braceIdx >= 0 ? trimmed.slice(braceIdx) : '';
 
     if (before) {
-      // Keep colon parsing for legacy, but map to title directly
       const colonIdx = before.indexOf(':');
       if (colonIdx > 0) {
-        language = before.slice(0, colonIdx);
-        const pathValue = before.slice(colonIdx + 1);
-        const parts = pathValue.split('/');
-        title = parts[parts.length - 1];
+        const pathPart = before.slice(colonIdx + 1).trim();
+        // If there is a non-empty path segment before the attrs brace, it's legacy
+        if (pathPart.length > 0) {
+          language = before.slice(0, colonIdx) || 'plaintext';
+          warnings.push('Legacy code fence syntax `lang:path` is deprecated. Use `lang:{title="file.ext"}` instead.');
+        } else {
+          // Form like `ts:{...}` -> colon is part of the attrs separator, not legacy
+          language = before.slice(0, colonIdx) || 'plaintext';
+        }
       } else {
         language = before;
       }

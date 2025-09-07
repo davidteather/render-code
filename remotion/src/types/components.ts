@@ -40,6 +40,8 @@ export type MetadataPayload = {
   trimSafetyFrames: number;
   perBlockHighlightHoldFrames: number[];
   perBlockTailFrames: number[];
+  cutPoints?: number[];
+  cutDetails?: Array<{ start: number; endOfHighlight?: number; endOfBlock: number; sequenceDuration: number; isCode: boolean }>;
   specVersion: string;
   generatorVersion: string;
 };

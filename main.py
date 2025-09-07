@@ -21,9 +21,11 @@ def create_parser():
     # Removed: skip-warnings; enforce fail-fast to keep outputs correct
     parser_render.set_defaults(func=render_main)
 
-    # Subcommand for exporting the project to Premiere Pro
-    parser_export = subparsers.add_parser('export', help='Export the project to Premiere Pro')
+    # Subcommand for exporting the project
+    parser_export = subparsers.add_parser('export', help='Export the project to an editor')
     parser_export.add_argument('file', help="Path to the markdown file")
+    parser_export.add_argument('--format', choices=['premiere', 'final-cut'], default='premiere', help='Output target: Premiere or Final Cut (FCPXML)')
+    parser_export.add_argument('--preview', action='store_true', help='Use preview outputs (MyCompPreview)')
     parser_export.set_defaults(func=export_main)
 
     return parser

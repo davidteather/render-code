@@ -18,17 +18,22 @@ describe('parseMarkdown - code fence flags and info string', () => {
     expect(block.startFromBlank).toBe(true);
   });
 
-  it('parses legacy lang:path form to infer title as filename', () => {
+  // Legacy lang:path syntax removed; ensure it no longer sets title implicitly
+  it('does not infer title from legacy lang:path; requires explicit title attr', () => {
     const md = [
       '```js:src/index.js',
       'console.log(1)',
       '```',
     ].join('\n');
+    // Allow deprecation warning without failing the test
+    const orig = (process as any).env.SKIP_WARNINGS;
+    (process as any).env.SKIP_WARNINGS = '1';
     const parsed = parseMarkdownString(md);
+    if (orig) (process as any).env.SKIP_WARNINGS = orig; else delete (process as any).env.SKIP_WARNINGS;
     const block = parsed.sections[0].blocks[0] as any;
     expect(block.type).toBe('code');
     expect(block.language).toBe('js');
-    expect(block.title).toBe('index.js');
+    expect(block.title).toBeUndefined();
   });
 
   it('parses console directive with boolean attributes', () => {

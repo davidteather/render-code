@@ -39,6 +39,9 @@ export const div = (a: number, b: number) => a / b;
 :::cutaway type=image src="/assets/prem1.png" title="Architecture Overview" width=1600
 :::
 
+:::cutaway type=image src="/assets/prem2.png" title="Architecture Overview 2" width=1600
+:::
+
 :::cutaway type=console title="Run tests (custom prompt and speeds)" prompt="(venv) ➜ app %" commandLines=1 commandCps=10 outputCps=400 enterDelay=0.15 showPrompt=true
 pnpm test
 > PASS src/index.test.ts

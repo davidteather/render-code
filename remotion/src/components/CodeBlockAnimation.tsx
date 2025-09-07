@@ -23,6 +23,12 @@ type CodeBlockAnimationProps = {
   themeOverride?: ThemeConfig;
 };
 
+// Global interval store used for post-process cutpoint generation
+type IntervalCategory = 'highlighted' | 'covered';
+type Interval = { start: number; end: number; category: IntervalCategory };
+(globalThis as any).__RC_INTERVALS__ = (globalThis as any).__RC_INTERVALS__ || [] as Interval[];
+(globalThis as any).__RC_LAST_CUT_DETAILS__ = (globalThis as any).__RC_LAST_CUT_DETAILS__ || [] as Array<{ start: number; endOfHighlight?: number; endOfBlock: number; sequenceDuration: number; isCode: boolean }>;
+
 const CodeBlockAnimation: React.FC<CodeBlockAnimationProps> = ({ markdown, themeOverride }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -50,9 +56,140 @@ const CodeBlockAnimation: React.FC<CodeBlockAnimationProps> = ({ markdown, theme
     return adjustedHighlightHold[i] + perBlockTailFrames[i] + Math.round(ANIMATION.lastBlockTailBonusSeconds * factor * fps);
   })();
 
+  // Build and store intervals once (based on computed timeline, independent of current frame)
+  useMemo(() => {
+    const clamp = (v: number) => Math.max(0, Math.min(totalFrames, v));
+    const intervals: Interval[] = [];
+    const details: Array<{ start: number; endOfHighlight?: number; endOfBlock: number; sequenceDuration: number; isCode: boolean }> = [];
+
+    // Helper function to recursively collect all blocks including nested ones in layouts
+    const collectAllBlocks = (blockList: Array<CodeBlockMetadata | CutawayBlockMetadata | LayoutSplitMetadata>): Array<{block: CodeBlockMetadata | CutawayBlockMetadata, globalStart: number, globalDuration: number, blockIndex: number, isNested?: boolean}> => {
+      const result: Array<{block: CodeBlockMetadata | CutawayBlockMetadata, globalStart: number, globalDuration: number, blockIndex: number, isNested?: boolean}> = [];
+      
+      blockList.forEach((b, i) => {
+        if (b.type === 'layout-split') {
+          const layoutBlock = b as LayoutSplitMetadata;
+          
+          // Recursively collect blocks from all panes
+          layoutBlock.panes.forEach(pane => {
+            pane.blocks.forEach((innerBlock: any) => {
+              if (innerBlock.type === 'code' || Object.values(CutawayType).includes(innerBlock.type)) {
+                // Calculate global timing for nested block
+                const globalStart = b.start + (innerBlock.start || 0);
+                const globalDuration = innerBlock.duration || 0;
+                result.push({
+                  block: innerBlock,
+                  globalStart,
+                  globalDuration,
+                  blockIndex: i, // Reference to parent layout
+                  isNested: true
+                });
+              }
+            });
+          });
+        } else {
+          // Regular top-level block
+          result.push({
+            block: b as CodeBlockMetadata | CutawayBlockMetadata,
+            globalStart: b.start,
+            globalDuration: b.duration,
+            blockIndex: i,
+            isNested: false
+          });
+        }
+      });
+      
+      return result.sort((a, b) => a.globalStart - b.globalStart);
+    };
+
+    const allBlocks = collectAllBlocks(blocks);
+
+    allBlocks.forEach(({block, globalStart, globalDuration, blockIndex, isNested}) => {
+      const start = clamp(globalStart);
+      const activeDuration = Math.max(1, globalDuration);
+      const isCode = block.type === 'code';
+      
+      // For nested blocks, use their own timing; for top-level blocks, use original logic
+      const hold = isCode && !isNested ? (adjustedHighlightHold[blockIndex] ?? 0) : 0;
+      const tail = isCode && !isNested ? (perBlockTailFrames[blockIndex] ?? 0) : 0;
+      const highlightEnabled = isCode && ((block as any).highlight !== false);
+      
+      // Calculate end timing
+      let endOfBlock: number;
+      if (isNested) {
+        // For nested blocks, use their own duration
+        endOfBlock = clamp(start + activeDuration);
+      } else {
+        // For top-level blocks, use original logic
+        const nextTopLevel = blocks[blockIndex + 1] as any | undefined;
+        const desiredDuration = activeDuration + hold + tail;
+        const sequenceDuration = Math.max(1, (nextTopLevel ? nextTopLevel.start - globalStart : desiredDuration));
+        endOfBlock = clamp(start + sequenceDuration);
+      }
+
+      let endOfHighlight: number | undefined = undefined;
+      if (highlightEnabled) {
+        const highlightEndRel = activeDuration + hold;
+        const rawHighlightEnd = start + Math.min(highlightEndRel, endOfBlock - start);
+        const safeHighlightEnd = Math.min(rawHighlightEnd, Math.max(start, endOfBlock - 1));
+        endOfHighlight = clamp(safeHighlightEnd);
+        if (endOfHighlight > start) {
+          intervals.push({ start, end: endOfHighlight, category: 'highlighted' });
+        }
+        if (endOfBlock > endOfHighlight) {
+          intervals.push({ start: endOfHighlight, end: endOfBlock, category: 'covered' });
+        }
+      } else {
+        // Handle cutaway-specific cut points
+        if (block.type === 'cutaway-video' && (block as any).startSec !== undefined && (block as any).endSec !== undefined) {
+          // Video cutaways with start/end should create cut points at those positions
+          const videoStartFrame = start + Math.round(((block as any).startSec || 0) * fps);
+          const videoEndFrame = start + Math.round(((block as any).endSec || activeDuration / fps) * fps);
+          const clampedVideoStart = clamp(videoStartFrame);
+          const clampedVideoEnd = clamp(Math.min(videoEndFrame, endOfBlock));
+          
+          if (clampedVideoStart > start) {
+            intervals.push({ start, end: clampedVideoStart, category: 'covered' });
+          }
+          if (clampedVideoEnd > clampedVideoStart) {
+            intervals.push({ start: clampedVideoStart, end: clampedVideoEnd, category: 'highlighted' });
+          }
+          if (endOfBlock > clampedVideoEnd) {
+            intervals.push({ start: clampedVideoEnd, end: endOfBlock, category: 'covered' });
+          }
+        } else {
+          // Entire non-highlight block (including other cutaways/layouts) is covered
+          intervals.push({ start, end: endOfBlock, category: 'covered' });
+        }
+      }
+
+      details.push({ start, endOfHighlight, endOfBlock, sequenceDuration: endOfBlock - start, isCode });
+    });
+
+    // Also add top-level layout containers as covered intervals
+    blocks.forEach((b, i) => {
+      if (b.type === 'layout-split') {
+        const start = clamp(b.start);
+        const next = blocks[i + 1] as any | undefined;
+        const desiredDuration = b.duration;
+        const sequenceDuration = Math.max(1, (next ? next.start - b.start : desiredDuration));
+        const endOfBlock = clamp(start + sequenceDuration);
+        
+        // Only add if not already covered by nested blocks
+        const hasOverlap = intervals.some(iv => iv.start < endOfBlock && iv.end > start);
+        if (!hasOverlap) {
+          intervals.push({ start, end: endOfBlock, category: 'covered' });
+        }
+      }
+    });
+
+    (globalThis as any).__RC_INTERVALS__ = intervals;
+    (globalThis as any).__RC_LAST_CUT_DETAILS__ = details;
+  }, [blocks, adjustedHighlightHold, perBlockTailFrames, totalFrames]);
+
   return (
     <>
-    {frame === 0 && (
+    {frame === totalFrames - 1 && (
       <MetadataArtifact payload={buildMetadata({
         blocks,
         totalFrames,
@@ -63,6 +200,50 @@ const CodeBlockAnimation: React.FC<CodeBlockAnimationProps> = ({ markdown, theme
         trimSafetyFrames: Math.round(ANIMATION.trimSafetySeconds * fps),
         perBlockHighlightHoldFrames: adjustedHighlightHold,
         perBlockTailFrames,
+        cutPoints: (() => {
+          const clamp = (v: number) => Math.max(0, Math.min(totalFrames, v));
+          const intervals = ((globalThis as any).__RC_INTERVALS__ as Interval[]) || [];
+          const cps: number[] = [];
+          if (totalFrames > 0) cps.push(0);
+          let currentCategory: IntervalCategory | undefined = undefined;
+          let lastEnd = 0;
+          for (const iv of intervals) {
+            const s = clamp(iv.start);
+            const e = clamp(iv.end);
+            if (e <= s) continue;
+            if (s > lastEnd || currentCategory !== iv.category) {
+              if (cps[cps.length - 1] !== s) cps.push(s);
+              currentCategory = iv.category;
+            }
+            lastEnd = e;
+          }
+          if (cps[cps.length - 1] !== totalFrames) cps.push(totalFrames);
+          // Shift 1-frame segments one frame later by incrementing BOTH surrounding cuts by +1,
+          // keeping first(0) and last(totalFrames) fixed
+          for (let i = 0; i < cps.length - 1; i++) {
+            const segLen = cps[i + 1] - cps[i];
+            if (segLen === 1) {
+              const isFirstBoundary = i === 0;
+              const isLastBoundary = (i + 1) === (cps.length - 1);
+              if (!isFirstBoundary && !isLastBoundary && cps[i + 1] < totalFrames) {
+                cps[i] = cps[i] + 1;
+                cps[i + 1] = cps[i + 1] + 1;
+              } else if (isFirstBoundary && !isLastBoundary && cps[i + 1] < totalFrames) {
+                // Keep 0, shift the end cut by +1
+                cps[i + 1] = cps[i + 1] + 1;
+              } else if (!isFirstBoundary && isLastBoundary && cps[i] > 0) {
+                // Keep totalFrames, shift the start cut by +1 if possible
+                cps[i] = cps[i] + 1;
+              }
+            }
+          }
+          // Normalize, dedupe, clamp
+          const normalize = Array.from(new Set(cps.map((v) => Math.max(0, Math.min(totalFrames, v))))).sort((a, b) => a - b);
+          if (normalize[0] !== 0) normalize.unshift(0);
+          if (normalize[normalize.length - 1] !== totalFrames) normalize.push(totalFrames);
+          return normalize;
+        })(),
+        cutDetails: ((globalThis as any).__RC_LAST_CUT_DETAILS__ as any[]),
       }) as MetadataPayload} />
     )}
     <AbsoluteFill style={{ backgroundColor: (themeOverride?.stageBackground ?? THEME.stageBackground) }}>
@@ -179,7 +360,7 @@ const CodeBlockAnimation: React.FC<CodeBlockAnimationProps> = ({ markdown, theme
           <Sequence key={index} from={block.start} durationInFrames={sequenceDuration}>
             <CutawayRenderer
               {...(block as any)}
-              isActive={block.type === CutawayType.Video ? (localFrame < activeDuration) : isActive}
+              isActive={block.type === CutawayType.Video ? (localFrame < activeDuration) : true}
               {...(block.type === CutawayType.Console ? {
                 durationFrames: activeDuration,
                 frameOverride: localFrame,

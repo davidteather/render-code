@@ -9,6 +9,12 @@ def export(video_path, metadata_path):
     with open(metadata_path, "r") as f:
         metadata = json.load(f)
 
+    # Validate required metadata fields
+    if not isinstance(metadata.get("cutPoints"), list) or len(metadata["cutPoints"]) < 2:
+        raise ValueError("metadata.cutPoints missing or invalid. Re-render first so metadata.json includes cutPoints.")
+    if not isinstance(metadata.get("fps"), (int, float)) or not int(metadata.get("fps")):
+        raise ValueError("metadata.fps missing or invalid. Re-render first.")
+
     project_opened, sequence_active = wrappers.check_active_sequence(crash=False)
     if not project_opened:
         raise ValueError("please open a project")
@@ -42,21 +48,10 @@ def export(video_path, metadata_path):
 
     # frames_per_segment = metadata[''] # 20 + 30
     #frames_per_segment = 100
-    segment_numbers = len(metadata["blocks"])
-
-    segment_blocks = metadata["blocks"]
-    additional_frames = metadata["extraFramesPerBlock"]
-    for i in range(segment_numbers + 1):
-        if i == segment_numbers:
-            timecode = wrappers.timecode_from_seconds((i * frames_per_segment) * fps.seconds, seq)
-            pymiere.objects.qe.project.getActiveSequence().getVideoTrackAt(0).razor(timecode)
-            break
-
-        frames_per_segment = (segment_blocks[i]["duration"] + additional_frames) * 2
-
-        diff_cuts = [1, 3]
-        for diff in diff_cuts:
-            timecode = wrappers.timecode_from_seconds(((i * frames_per_segment) + diff) * fps.seconds, seq)
-
-            #timecode = wrappers.timecode_from_seconds(i * frames_per_segment / fps + diff, seq)
-            pymiere.objects.qe.project.getActiveSequence().getVideoTrackAt(0).razor(timecode)
+    cut_points = [int(x) for x in metadata["cutPoints"] if isinstance(x, (int, float))]
+    cut_points = sorted(set([cp for cp in cut_points if cp >= 0]))
+    # Convert frame indices to seconds using FPS
+    for cp in cut_points:
+        seconds = cp / fps.seconds
+        timecode = wrappers.timecode_from_seconds(seconds, seq)
+        pymiere.objects.qe.project.getActiveSequence().getVideoTrackAt(0).razor(timecode)

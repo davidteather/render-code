@@ -12,6 +12,8 @@ export type BuiltMetadata = {
   trimSafetyFrames: number;
   perBlockHighlightHoldFrames: number[];
   perBlockTailFrames: number[];
+  cutPoints?: number[];
+  cutDetails?: Array<{ start: number; endOfHighlight?: number; endOfBlock: number; sequenceDuration: number; isCode: boolean }>; 
   specVersion: string;
   generatorVersion: string;
 };
@@ -26,6 +28,8 @@ export function buildMetadata(input: {
   trimSafetyFrames: number;
   perBlockHighlightHoldFrames: number[];
   perBlockTailFrames: number[];
+  cutPoints?: number[];
+  cutDetails?: Array<{ start: number; endOfHighlight?: number; endOfBlock: number; sequenceDuration: number; isCode: boolean }>; 
 }): BuiltMetadata {
   return {
     blocks: input.blocks,
@@ -37,6 +41,8 @@ export function buildMetadata(input: {
     trimSafetyFrames: input.trimSafetyFrames,
     perBlockHighlightHoldFrames: input.perBlockHighlightHoldFrames,
     perBlockTailFrames: input.perBlockTailFrames,
+    cutPoints: input.cutPoints,
+    cutDetails: input.cutDetails,
     specVersion: 'v0',
     generatorVersion,
   };
